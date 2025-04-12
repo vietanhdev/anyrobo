@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anyrobo"
+version = "0.1.0"
+description = "Create your own JARVIS or GLADOS: a framework for voice-powered AI assistants with unique personalities"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Viet-Anh Nguyen", email = "vietanh.dev@gmail.com"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Sound/Audio :: Speech"
+]
+dependencies = [
+    "numpy>=2.0.0,<3.0.0",
+    "onnxruntime>=1.16.0,<2.0.0",
+    "kokoro-onnx>=0.2.0",
+    "lightning-whisper-mlx>=0.0.10,<0.1.0",
+    "sounddevice>=0.4.6,<0.6.0",
+    "ollama>=0.4.0,<0.5.0"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/vietanhdev/anyrobo"
+"Bug Tracker" = "https://github.com/vietanhdev/anyrobo/issues"
+
+[project.scripts]
+anyrobo = "anyrobo.cli:main"
+
+[tool.setuptools]
+packages = ["anyrobo"]
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true 

@@ -5,12 +5,12 @@
       <stop offset="0%" stop-color="#1e293b" />
       <stop offset="100%" stop-color="#0f172a" />
     </radialGradient>
-    
+
     <linearGradient id="glowingBlue" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#60a5fa" />
       <stop offset="100%" stop-color="#3b82f6" />
     </linearGradient>
-    
+
     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="2" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -19,38 +19,38 @@
 
   <!-- Dark Background Circle -->
   <circle cx="100" cy="100" r="95" fill="url(#darkBackground)" />
-  
+
   <!-- Arc Reactor Outer Ring -->
   <circle cx="100" cy="100" r="70" fill="none" stroke="url(#glowingBlue)" stroke-width="2" stroke-opacity="0.6" />
-  
+
   <!-- Arc Reactor Inner Design -->
   <circle cx="100" cy="100" r="40" fill="none" stroke="url(#glowingBlue)" stroke-width="1.5" filter="url(#glow)" />
   <circle cx="100" cy="100" r="25" fill="none" stroke="url(#glowingBlue)" stroke-width="1" filter="url(#glow)" />
-  
+
   <!-- Tech Circle with Segments -->
   <circle cx="100" cy="100" r="55" fill="none" stroke="url(#glowingBlue)" stroke-width="2" stroke-dasharray="15,10" filter="url(#glow)" />
-  
+
   <!-- Central Core -->
   <circle cx="100" cy="100" r="15" fill="url(#glowingBlue)" filter="url(#glow)" />
-  
+
   <!-- JARVIS-inspired Interface Elements -->
-  <path d="M100,30 L120,45 L120,70 L100,85 L80,70 L80,45 Z" 
-        fill="none" 
-        stroke="url(#glowingBlue)" 
+  <path d="M100,30 L120,45 L120,70 L100,85 L80,70 L80,45 Z"
+        fill="none"
+        stroke="url(#glowingBlue)"
         stroke-width="1.5"
         stroke-opacity="0.8"
         filter="url(#glow)" />
-        
+
   <!-- Data Lines -->
-  <path d="M50,130 C70,140 90,130 100,150 C110,170 130,160 150,130" 
-        fill="none" 
-        stroke="url(#glowingBlue)" 
-        stroke-width="1.5" 
+  <path d="M50,130 C70,140 90,130 100,150 C110,170 130,160 150,130"
+        fill="none"
+        stroke="url(#glowingBlue)"
+        stroke-width="1.5"
         stroke-linecap="round"
         filter="url(#glow)" />
-        
+
   <!-- Small Tech Dots -->
   <circle cx="50" cy="130" r="3" fill="#60a5fa" filter="url(#glow)" />
   <circle cx="150" cy="130" r="3" fill="#60a5fa" filter="url(#glow)" />
   <circle cx="100" cy="150" r="3" fill="#60a5fa" filter="url(#glow)" />
-</svg> 
+</svg>

@@ -59,42 +59,16 @@ ollama pull llama3.2
 
 ## Usage
 
-### Command-line Interface
+- Run JARVIS-like assistant (with UI):
 
 ```bash
-# Download required models and start the assistant
-anyrobo --setup
-anyrobo
+python examples/jarvis_assistant.py
 ```
 
-With custom settings:
+- Run GLADOS-like assistant (command line):
 
 ```bash
-anyrobo --voice am_michael --speed 1.3 --silence-threshold 0.03
-```
-
-### As a Library
-
-```python
-from anyrobo import AnyRobo
-from anyrobo.models.loader import download_tts_model, ensure_ollama_model
-
-# Download required models
-download_tts_model()
-ensure_ollama_model("llama3.2")
-
-# Create and run assistant
-assistant = AnyRobo(
-    voice="am_michael",
-    speed=1.2,
-    system_prompt=(
-        "You are J.A.R.V.I.S., an advanced AI assistant. "
-        "Respond with a mix of helpfulness, light sarcasm, and technical prowess."
-    )
-)
-
-# Start listening and responding
-assistant.record_and_transcribe()
+python examples/glados_assistant.py
 ```
 
 ## Create Your Own AI Character
@@ -149,4 +123,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Acknowledgements
 
 AnyRobo is built on top of several open-source projects and pre-trained models. We're grateful to the developers and researchers who make their work available to the community.
-

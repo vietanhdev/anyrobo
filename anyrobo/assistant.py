@@ -3,10 +3,10 @@
 import signal
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
-from typing import Dict, List, Optional
+from typing import Optional
 
-import sounddevice as sd
 import numpy as np
+import sounddevice as sd
 from ollama import chat
 
 from anyrobo.speech.recognition import SpeechRecognizer
@@ -15,7 +15,7 @@ from anyrobo.speech.synthesis import TextToSpeech
 
 class AnyRobo:
     """Main assistant class that coordinates speech recognition and synthesis."""
-    
+
     def __init__(
         self,
         sample_rate: int = 24000,
@@ -26,7 +26,7 @@ class AnyRobo:
         system_prompt: Optional[str] = None,
     ):
         """Initialize the AnyRobo assistant.
-        
+
         Args:
             sample_rate: Audio sample rate in Hz
             silence_threshold: Volume level that counts as silence
@@ -47,7 +47,10 @@ class AnyRobo:
 
         # ollama settings
         self.messages = []
-        self.SYSTEM_PROMPT = system_prompt or "Give a conversational response to the following statement or question in 1-2 sentences. The response should be natural and engaging, and the length depends on what you have to say."
+        self.SYSTEM_PROMPT = (
+            system_prompt
+            or "Give a conversational response to the following statement or question in 1-2 sentences. The response should be natural and engaging, and the length depends on what you have to say."
+        )
 
         # init components
         self.speech_recognizer = SpeechRecognizer(model="small", batch_size=12)
@@ -97,15 +100,12 @@ class AnyRobo:
                 audio_segment = np.array(audio_buffer, dtype=np.float32)
 
                 if len(audio_segment) > self.SAMPLE_RATE:
-                    text = self.speech_recognizer.transcribe(audio_segment)['text']
+                    text = self.speech_recognizer.transcribe(audio_segment)["text"]
 
                     # skip empty/invalid transcriptions
                     if text.strip():
                         print(f"Transcription: {text}")
-                        self.messages.append({
-                            'role': 'user',
-                            'content': text
-                        })
+                        self.messages.append({"role": "user", "content": text})
                         self.create_and_play_response(text)
 
                 # reset state
@@ -116,10 +116,7 @@ class AnyRobo:
         # start recording loop
         try:
             with sd.InputStream(
-                callback=callback,
-                channels=1,
-                samplerate=self.SAMPLE_RATE,
-                dtype=np.float32
+                callback=callback, channels=1, samplerate=self.SAMPLE_RATE, dtype=np.float32
             ):
                 print("Recording... Press Ctrl+C to stop")
                 while not self.shutdown_event.is_set():
@@ -134,11 +131,8 @@ class AnyRobo:
 
         # stream response from llm
         stream = chat(
-            model='llama3.2',
-            messages=[{
-                'role': 'system',
-                'content': self.SYSTEM_PROMPT
-            }] + self.messages,
+            model="llama3.2",
+            messages=[{"role": "system", "content": self.SYSTEM_PROMPT}] + self.messages,
             stream=True,
         )
 
@@ -154,13 +148,10 @@ class AnyRobo:
                     break
 
                 print(chunk)
-                text = chunk['message']['content']
+                text = chunk["message"]["content"]
 
                 if len(text) == 0:
-                    self.messages.append({
-                        'role': 'assistant',
-                        'content': curr_str
-                    })
+                    self.messages.append({"role": "assistant", "content": curr_str})
                     curr_str = ""
                     print(self.messages)
                     continue
@@ -169,11 +160,7 @@ class AnyRobo:
                 curr_str += text
 
                 # find end of sentence to chunk at
-                last_punctuation = max(
-                    buffer.rfind('. '),
-                    buffer.rfind('? '),
-                    buffer.rfind('! ')
-                )
+                last_punctuation = max(buffer.rfind(". "), buffer.rfind("? "), buffer.rfind("! "))
 
                 if last_punctuation == -1:
                     continue
@@ -181,40 +168,34 @@ class AnyRobo:
                 # handle long chunks
                 while last_punctuation != -1 and last_punctuation >= self.CHUNK_SIZE:
                     last_punctuation = max(
-                        buffer.rfind(', ', 0, last_punctuation),
-                        buffer.rfind('; ', 0, last_punctuation),
-                        buffer.rfind('— ', 0, last_punctuation)
+                        buffer.rfind(", ", 0, last_punctuation),
+                        buffer.rfind("; ", 0, last_punctuation),
+                        buffer.rfind("— ", 0, last_punctuation),
                     )
 
                 if last_punctuation == -1:
-                    last_punctuation = buffer.find(' ', 0, self.CHUNK_SIZE)
+                    last_punctuation = buffer.find(" ", 0, self.CHUNK_SIZE)
 
                 # process chunk
                 # convert chunk to audio
-                chunk_text = buffer[:last_punctuation + 1]
+                chunk_text = buffer[: last_punctuation + 1]
                 futures.append(
                     self.executor.submit(
-                        self.tts.generate_audio,
-                        chunk_text, self.VOICE, self.SPEED
+                        self.tts.generate_audio, chunk_text, self.VOICE, self.SPEED
                     )
                 )
-                buffer = buffer[last_punctuation + 1:]
+                buffer = buffer[last_punctuation + 1 :]
 
             # process final chunk if any
             if buffer and not self.shutdown_event.is_set():
                 futures.append(
-                    self.executor.submit(
-                        self.tts.generate_audio,
-                        buffer, self.VOICE, self.SPEED
-                    )
+                    self.executor.submit(self.tts.generate_audio, buffer, self.VOICE, self.SPEED)
                 )
 
             # play generated audio
             if not self.shutdown_event.is_set():
                 with sd.OutputStream(
-                    samplerate=self.SAMPLE_RATE,
-                    channels=1,
-                    dtype=np.float32
+                    samplerate=self.SAMPLE_RATE, channels=1, dtype=np.float32
                 ) as out_stream:
                     for fut in futures:
                         if self.shutdown_event.is_set():
@@ -225,4 +206,4 @@ class AnyRobo:
                         out_stream.write(audio_data.reshape(-1, 1))
         except Exception as e:
             if not self.shutdown_event.is_set():
-                raise e 
+                raise e

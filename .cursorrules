@@ -1,2 +1,24 @@
+# AnyRobo Code Guidelines
+
+- Use anyrobo packages as the core. Modify any modules freely to develop new features, and examples as needed.
 - Use best practices for Python programming.
 - Use type hints for all functions and variables.
+- Break down complex functions into smaller, more manageable ones.
+- Break down large files into smaller ones.
+- Use meaningful variable and function names.
+- Add docstrings to all functions and classes.
+- Add comments to explain why behind the code in more complex functions.
+- Keep functions small and focused (single responsibility).
+- Handle errors and edge cases gracefully.
+- We are in active development. Code will break. Don't be afraid to break things and don't need to maintain backward compatibility.
+
+## Documentation
+
+- Define and use interfaces for event-driven architecture at docs/interfaces.md
+
+## IMPORTANT
+
+- Keep the code simple, clean and readable.
+- Keep the code modular and reusable.
+- Keep the code efficient and performant.
+- Use event-driven architecture.

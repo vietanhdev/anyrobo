@@ -8,7 +8,8 @@ from anyrobo.ui.animations import (
     TargetLock,
 )
 from anyrobo.ui.components import FuturisticButton, StatusBar, TextDisplay
-from anyrobo.ui.jarvis_ui import JarvisUI, run_jarvis_ui
+
+# from anyrobo.ui.graphical_ui import GraphicalUIHandler, run_graphical_ui
 from anyrobo.ui.themes import (
     DangerTheme,
     GLaDOSTheme,
@@ -24,6 +25,9 @@ __all__ = [
     # Main UI
     "JarvisUI",
     "run_jarvis_ui",
+    # GraphicalUI integration
+    # "GraphicalUIHandler",
+    # "run_graphical_ui",
     # Animations
     "CircularProgressAnimation",
     "HexagonGrid",

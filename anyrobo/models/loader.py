@@ -1,10 +1,9 @@
 """Model loader utilities for AnyRobo."""
 
 import os
-import subprocess
 import urllib.request
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 
 def get_models_dir() -> Path:
@@ -87,20 +86,25 @@ def ensure_ollama_model(model_name: str = "llama3.2") -> None:
     print(f"Checking for Ollama model {model_name}")
 
     try:
-        # Run "ollama list" to check if model exists
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, check=True)
+        # Use the Python Ollama client instead of subprocess
+        from ollama import list, pull
 
-        if model_name in result.stdout:
+        # Get list of installed models
+        models_response = list()
+        models_list: List[Dict[str, Any]] = models_response.get("models", [])
+
+        # Check if model exists
+        if any(model.get("name") == model_name for model in models_list):
             print(f"Ollama model {model_name} is already installed")
             return
 
         # If not found, pull the model
         print(f"Pulling Ollama model {model_name}")
-        subprocess.run(["ollama", "pull", model_name], check=True)
+        pull(model_name)
         print(f"Ollama model {model_name} installed successfully")
-    except subprocess.CalledProcessError as e:
+    except ImportError:
+        print("Warning: Ollama Python client not found.")
+        print("Please install it with 'pip install ollama'")
+    except Exception as e:
         print(f"Warning: Failed to check/install Ollama model: {e}")
-        print("Please make sure Ollama is installed and run 'ollama pull llama3.2' manually")
-    except FileNotFoundError:
-        print("Warning: Ollama command not found.")
-        print("Please install Ollama from https://ollama.com/")
+        print("Please make sure Ollama is installed and running")

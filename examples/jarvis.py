@@ -1426,9 +1426,7 @@ class JarvisUI:
         if hasattr(self, "voice_button"):
             self.voice_button.update_theme(self.theme)
             # Update text directly
-            self.voice_button.canvas.itemconfig(
-                self.voice_button.button_text, text="START VOICE INPUT"
-            )
+            self.voice_button.set_text("START VOICE INPUT")
 
         self.set_status("Online")
 

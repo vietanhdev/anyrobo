@@ -2,9 +2,11 @@
 
 import random
 import tkinter as tk
-from typing import List
+from typing import List, Optional, Union
 
 import numpy as np
+
+from anyrobo.ui.themes import UITheme, get_theme
 
 # UI colors
 UI_BLUE = "#00FFFF"
@@ -147,17 +149,53 @@ class LiveAudioVisualizer(AudioVisualizer):
 
     def __init__(
         self,
-        canvas: "tk.Canvas",
-        x: int,
-        y: int,
+        canvas: Union["tk.Canvas", tk.Widget],
+        x: Optional[int] = None,
+        y: Optional[int] = None,
         width: int = 200,
         height: int = 60,
         bars: int = 20,
         color: str = UI_BLUE,
+        theme: Optional[Union[UITheme, str]] = None,
     ) -> None:
+        # If canvas is not a Canvas but a widget, create a Canvas
+        if not isinstance(canvas, tk.Canvas):
+            # Get background color from theme
+            bg_color = "black"
+            if theme is not None:
+                if isinstance(theme, str):
+                    theme_obj = get_theme(theme)
+                    bg_color = theme_obj.background_color
+                else:
+                    theme_obj = theme
+                    bg_color = theme_obj.background_color
+
+            # Create frame with proper background
+            frame = tk.Frame(canvas, bg=bg_color)
+            frame.pack(pady=10, fill=tk.X)
+            canvas = tk.Canvas(frame, width=width, height=height, bg=bg_color, highlightthickness=0)
+            canvas.pack()
+
+        # If theme is provided, use its colors
+        theme_obj = None
+        if theme is not None:
+            if isinstance(theme, str):
+                theme_obj = get_theme(theme)
+            else:
+                theme_obj = theme
+
+            # Update color from theme
+            color = theme_obj.accent_color
+
+        # If x and y are not provided, center in the canvas
+        if x is None:
+            x = width // 2
+        if y is None:
+            y = height // 2
+
         super().__init__(canvas, x, y, width, height, bars, color)
         self.audio_data = None
-        self.energy_scale = 5.0  # Scale factor for energy values
+        self.energy_scale = 5.0  # Fixed scale factor as a float
 
     def set_audio_data(self, audio_data: np.ndarray) -> None:
         """Set the current audio data to visualize
@@ -184,7 +222,10 @@ class LiveAudioVisualizer(AudioVisualizer):
                         # Calculate energy for this chunk
                         chunk = self.audio_data[start:end]
                         # Use RMS (root mean square) energy
-                        energy = np.sqrt(np.mean(chunk**2)) * self.height * self.energy_scale
+                        # Make sure we're using numeric values for calculation
+                        energy = (
+                            float(np.sqrt(np.mean(chunk**2))) * float(self.height) * 5.0
+                        )  # Use fixed scale factor
                         # Cap the height
                         bar_height = min(max(2, energy), self.height)
                         heights.append(bar_height)
@@ -203,14 +244,22 @@ class LiveAudioVisualizer(AudioVisualizer):
                             bar_x + self.bar_width - 1,
                             self.y + bar_height / 2,
                         )
-
-            # Clear audio data to avoid reusing it
-            self.audio_data = None
+            else:
+                # Fall back to random animation if no audio data
+                heights = [random.randint(2, int(self.height * 0.2)) for _ in range(self.bars)]
+                for i, bar_id in enumerate(self.bar_ids):
+                    bar_x = self.x - self.width / 2 + i * self.bar_width
+                    bar_height = heights[i]
+                    self.canvas.coords(
+                        bar_id,
+                        bar_x,
+                        self.y - bar_height / 2,
+                        bar_x + self.bar_width - 1,
+                        self.y + bar_height / 2,
+                    )
         else:
-            # If no audio data, generate random bars
-            heights = [random.randint(2, self.height // 3) for _ in range(self.bars)]
-
-            # Update bar heights with smaller random values
+            # Fall back to random animation if no audio data
+            heights = [random.randint(2, int(self.height * 0.2)) for _ in range(self.bars)]
             for i, bar_id in enumerate(self.bar_ids):
                 bar_x = self.x - self.width / 2 + i * self.bar_width
                 bar_height = heights[i]
@@ -222,23 +271,15 @@ class LiveAudioVisualizer(AudioVisualizer):
                     self.y + bar_height / 2,
                 )
 
-        self.canvas.after(100, self._animate)
+        self.canvas.after(50, self._animate)  # Smoother animation
 
     def process_audio_frame(self, audio_frame: np.ndarray) -> float:
-        """Process an audio frame from a microphone or audio source
+        """Process an audio frame and return its energy level
 
         Args:
-            audio_frame: NumPy array of audio samples from a microphone or other source
+            audio_frame: Audio frame data
 
         Returns:
-            Energy level of the audio frame
+            Energy level of the frame
         """
-        # Scale the input to make visualization more visible
-        scaled_audio = audio_frame * 5
-        self.set_audio_data(scaled_audio)
-
-        # Calculate energy levels for debugging
-        if len(scaled_audio) > 0:
-            energy = float(np.sqrt(np.mean(scaled_audio**2)))
-            return energy
-        return 0.0
+        return np.sqrt(np.mean(audio_frame**2)) * self.height * self.energy_scale

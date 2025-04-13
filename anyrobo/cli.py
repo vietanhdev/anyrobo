@@ -51,6 +51,12 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
 
     parser.add_argument("--prompt", type=str, default=None, help="Custom system prompt for the LLM")
 
+    parser.add_argument("--fullscreen", action="store_true", help="Start in fullscreen mode")
+
+    parser.add_argument("--dangerous", action="store_true", help="Use dangerous theme")
+
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+
     parser.add_argument(
         "--setup",
         action="store_true",
@@ -94,23 +100,27 @@ def main(args: Optional[List[str]] = None) -> int:
         download_whisper_model("small")
         ensure_ollama_model(parsed_args.model)
 
+        print("Starting AnyRobo - your voice-powered AI assistant...")
+        print(f"Using voice: {parsed_args.voice}")
+        print(f"Using model: {parsed_args.model}")
+        print("Press Ctrl+C to stop")
+
         # Create the assistant
         assistant = AnyRobo(
+            model_name=parsed_args.model,
             sample_rate=parsed_args.sample_rate,
             silence_threshold=parsed_args.silence_threshold,
             silence_duration=parsed_args.silence_duration,
             voice=parsed_args.voice,
             speed=parsed_args.speed,
             system_prompt=parsed_args.prompt,
+            fullscreen=parsed_args.fullscreen,
+            dangerous_mode=parsed_args.dangerous,
+            debug=parsed_args.debug,
         )
 
-        print("Starting AnyRobo - your voice-powered AI assistant...")
-        print(f"Using voice: {parsed_args.voice}")
-        print(f"Using model: {parsed_args.model}")
-        print("Press Ctrl+C to stop")
-
-        # Run the assistant
-        assistant.record_and_transcribe()
+        # Run the assistant with the new start method
+        assistant.start()
         return 0
     except KeyboardInterrupt:
         print("\nStopping AnyRobo...")

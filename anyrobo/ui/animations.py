@@ -4,7 +4,9 @@ import math
 import random
 import tkinter as tk
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
+
+from anyrobo.ui.themes import UITheme, get_theme
 
 # UI colors
 UI_BLUE = "#00FFFF"
@@ -32,31 +34,62 @@ class CircularProgressAnimation:
     progress or an ongoing operation.
 
     Args:
-        canvas: The tkinter canvas to draw on
+        canvas: The tkinter canvas or widget to draw on
         x: X-coordinate of the center of the animation
         y: Y-coordinate of the center of the animation
         size: Diameter of the circle
         color: Color of the progress arc
         bg_color: Background circle color
         width: Line width of the circle
+        theme: Optional UITheme instance or theme name
     """
 
     def __init__(
         self,
-        canvas: tk.Canvas,
-        x: int,
-        y: int,
+        canvas: Union[tk.Canvas, tk.Widget],
+        x: int = None,
+        y: int = None,
         size: int = 100,
         color: str = "#5CE1E6",
         bg_color: str = "#002137",
         width: int = 8,
+        theme: Optional[Union[UITheme, str]] = None,
     ) -> None:
-        self.canvas = canvas
+        # If canvas is not a Canvas but a widget, create a Canvas
+        if not isinstance(canvas, tk.Canvas):
+            frame = tk.Frame(canvas, bg="black")
+            frame.pack(pady=10, fill=tk.X)
+            self.canvas = tk.Canvas(frame, width=400, height=400, bg="black", highlightthickness=0)
+            self.canvas.pack()
+        else:
+            self.canvas = canvas
+
+        # Handle canvas size for positioning
+        canvas_width = self.canvas.winfo_width() or 800
+        canvas_height = self.canvas.winfo_height() or 600
+
+        # Default center position if not specified
+        if x is None:
+            x = canvas_width // 2
+        if y is None:
+            y = canvas_height // 2
+
         self.x = x
         self.y = y
         self.size = size
-        self.color = color
-        self.bg_color = bg_color
+
+        # Handle theme if provided
+        if theme is not None:
+            if isinstance(theme, str):
+                theme_obj = get_theme(theme)
+            else:
+                theme_obj = theme
+            self.color = theme_obj.accent_color
+            self.bg_color = theme_obj.surface_color
+        else:
+            self.color = color
+            self.bg_color = bg_color
+
         self.width = width
         self.angle = 0
         self.arc_length = 120  # Degrees
@@ -71,7 +104,7 @@ class CircularProgressAnimation:
             y - size / 2,
             x + size / 2,
             y + size / 2,
-            outline=bg_color,
+            outline=self.bg_color,
             width=width,
             fill="",
         )
@@ -127,36 +160,71 @@ class PulsatingCircle:
     This component creates a circle that pulses between a minimum and maximum size.
 
     Args:
-        canvas: The tkinter canvas to draw on
+        canvas: The tkinter canvas or widget to draw on
         x: X-coordinate of the center of the circle
         y: Y-coordinate of the center of the circle
         min_radius: Minimum radius of the circle
         max_radius: Maximum radius of the circle
         color: Color of the circle
         pulse_speed: Speed of the pulsating effect
+        theme: Optional UITheme instance or theme name
     """
 
     def __init__(
         self,
-        canvas: tk.Canvas,
-        x: int,
-        y: int,
+        canvas: Union[tk.Canvas, tk.Widget],
+        x: int = None,
+        y: int = None,
         min_radius: float = 20,
         max_radius: float = 30,
         color: str = "#5CE1E6",
         pulse_speed: float = 0.05,
+        theme: Optional[Union[UITheme, str]] = None,
     ) -> None:
-        self.canvas = canvas
+        # If canvas is not a Canvas but a widget, create a Canvas
+        if not isinstance(canvas, tk.Canvas):
+            frame = tk.Frame(canvas, bg="black")
+            frame.pack(pady=10, fill=tk.X)
+            self.canvas = tk.Canvas(frame, width=400, height=400, bg="black", highlightthickness=0)
+            self.canvas.pack()
+        else:
+            self.canvas = canvas
+
+        # Handle canvas size for positioning
+        canvas_width = self.canvas.winfo_width() or 800
+        canvas_height = self.canvas.winfo_height() or 600
+
+        # Default center position if not specified
+        if x is None:
+            x = canvas_width // 2
+        if y is None:
+            y = canvas_height // 2
+
         self.x = x
         self.y = y
         self.min_radius = min_radius
         self.max_radius = max_radius
+
+        # Handle theme if provided
+        if theme is not None:
+            if isinstance(theme, str):
+                theme_obj = get_theme(theme)
+            else:
+                theme_obj = theme
+            self.color = theme_obj.accent_color
+        else:
+            self.color = color
+
         self.current_radius = min_radius
-        self.color = color
         self.pulse_speed = pulse_speed
         self.growing = True
-        self.circle_id = canvas.create_oval(
-            x - min_radius, y - min_radius, x + min_radius, y + min_radius, fill=color, outline=""
+        self.circle_id = self.canvas.create_oval(
+            x - min_radius,
+            y - min_radius,
+            x + min_radius,
+            y + min_radius,
+            fill=self.color,
+            outline="",
         )
         self.running = False
 
@@ -210,26 +278,46 @@ class HexagonGrid:
     for a futuristic background effect.
 
     Args:
-        canvas: The tkinter canvas to draw on
+        canvas: The tkinter canvas or widget to draw on
         size: Size of each hexagon
         gap: Gap between hexagons
         color: Color of the hexagons
-        alpha: Transparency of the hexagons (not fully supported in Tkinter)
+        alpha: Opacity level for hexagons (0.0-1.0) - controls visual intensity
+        theme: Optional UITheme instance or theme name
     """
 
     def __init__(
         self,
-        canvas: tk.Canvas,
+        canvas: Union[tk.Canvas, tk.Widget],
         size: int = 40,
         gap: int = 10,
         color: str = UI_BLUE,
         alpha: float = 0.2,
+        theme: Optional[Union[UITheme, str]] = None,
     ) -> None:
-        self.canvas = canvas
+        # If canvas is not a Canvas but a widget, create a Canvas
+        if not isinstance(canvas, tk.Canvas):
+            frame = tk.Frame(canvas, bg="black")
+            frame.pack(pady=10, fill=tk.X)
+            self.canvas = tk.Canvas(frame, width=800, height=200, bg="black", highlightthickness=0)
+            self.canvas.pack()
+        else:
+            self.canvas = canvas
+
         self.size = size
         self.gap = gap
-        self.color = color
-        self.alpha = alpha
+
+        # Handle theme if provided
+        if theme is not None:
+            if isinstance(theme, str):
+                theme_obj = get_theme(theme)
+            else:
+                theme_obj = theme
+            self.color = theme_obj.accent_color
+        else:
+            self.color = color
+
+        self.alpha = alpha  # Used conceptually for brightness/intensity
         self.hexagons: List[HexagonData] = []
         self.running = False
         self.create_grid()
@@ -264,7 +352,7 @@ class HexagonGrid:
                     py = y + self.size * math.sin(angle)
                     points.extend([px, py])
 
-                # Draw hexagon
+                # Draw hexagon - use base color without alpha (not supported in Tkinter)
                 hex_id = self.canvas.create_polygon(points, fill="", outline=self.color, width=1)
 
                 # Store hexagon info
@@ -312,17 +400,40 @@ class ScanLine:
     of the canvas, creating a scanning effect.
 
     Args:
-        canvas: The tkinter canvas to draw on
+        canvas: The tkinter canvas or widget to draw on
         color: Color of the scan line
         speed: Speed of the scanning animation
         thickness: Thickness of the scan line
+        theme: Optional UITheme instance or theme name
     """
 
     def __init__(
-        self, canvas: tk.Canvas, color: str = UI_BLUE, speed: int = 2, thickness: int = 3
+        self,
+        canvas: Union[tk.Canvas, tk.Widget],
+        color: str = UI_BLUE,
+        speed: int = 2,
+        thickness: int = 3,
+        theme: Optional[Union[UITheme, str]] = None,
     ) -> None:
-        self.canvas = canvas
-        self.color = color
+        # If canvas is not a Canvas but a widget, create a Canvas
+        if not isinstance(canvas, tk.Canvas):
+            frame = tk.Frame(canvas, bg="black")
+            frame.pack(pady=10, fill=tk.X)
+            self.canvas = tk.Canvas(frame, width=800, height=200, bg="black", highlightthickness=0)
+            self.canvas.pack()
+        else:
+            self.canvas = canvas
+
+        # Handle theme if provided
+        if theme is not None:
+            if isinstance(theme, str):
+                theme_obj = get_theme(theme)
+            else:
+                theme_obj = theme
+            self.color = theme_obj.accent_color
+        else:
+            self.color = color
+
         self.speed = speed
         self.thickness = thickness
         self.position = 0
@@ -377,21 +488,56 @@ class TargetLock:
     used to highlight or focus on a particular point.
 
     Args:
-        canvas: The tkinter canvas to draw on
+        canvas: The tkinter canvas or widget to draw on
         x: X-coordinate of the target center
         y: Y-coordinate of the target center
         size: Size of the targeting reticle
         color: Color of the reticle
+        theme: Optional UITheme instance or theme name
     """
 
     def __init__(
-        self, canvas: tk.Canvas, x: int, y: int, size: int = 50, color: str = DANGER_RED
+        self,
+        canvas: Union[tk.Canvas, tk.Widget],
+        x: int = None,
+        y: int = None,
+        size: int = 50,
+        color: str = DANGER_RED,
+        theme: Optional[Union[UITheme, str]] = None,
     ) -> None:
-        self.canvas = canvas
+        # If canvas is not a Canvas but a widget, create a Canvas
+        if not isinstance(canvas, tk.Canvas):
+            frame = tk.Frame(canvas, bg="black")
+            frame.pack(pady=10, fill=tk.X)
+            self.canvas = tk.Canvas(frame, width=400, height=400, bg="black", highlightthickness=0)
+            self.canvas.pack()
+        else:
+            self.canvas = canvas
+
+        # Handle canvas size for positioning
+        canvas_width = self.canvas.winfo_width() or 800
+        canvas_height = self.canvas.winfo_height() or 600
+
+        # Default center position if not specified
+        if x is None:
+            x = canvas_width // 2
+        if y is None:
+            y = canvas_height // 2
+
         self.x = x
         self.y = y
         self.size = size
-        self.color = color
+
+        # Handle theme if provided
+        if theme is not None:
+            if isinstance(theme, str):
+                theme_obj = get_theme(theme)
+            else:
+                theme_obj = theme
+            self.color = theme_obj.error_color
+        else:
+            self.color = color
+
         self.shape_ids: List[int] = []
         self.running = False
         self.rotation = 0

@@ -30,6 +30,22 @@ Have you ever wanted to create your own JARVIS or GLADOS? AnyRobo provides a ful
 - **Streaming Responses**: Begins speaking before the full response is generated
 - **Optimized Performance**: Designed for efficiency on Apple Silicon
 
+## Plan
+
+- [ ] JARVIS assistant with UI
+- [ ] Natural voice interaction
+- [ ] Functional calling
+- [ ] Web search
+- [ ] MCP support
+- [ ] Computer vision: See what's in front of the camera
+- [ ] Build your own AI character
+- [ ] 3D-printed JARVIS case
+- [ ] GLADOS assistant with UI
+- [ ] 3D-printed GLADOS case
+- [ ] Physical button to trigger actions
+- [ ] Physical robot bodies
+- [ ] .... [add your ideas here]
+
 ## Installation
 
 ### Quick Install (from PyPI)
@@ -59,16 +75,10 @@ ollama pull llama3.2
 
 ## Usage
 
-- Run JARVIS-like assistant (with UI):
+- Test voice assistant:
 
 ```bash
-python examples/jarvis_assistant.py
-```
-
-- Run GLADOS-like assistant (command line):
-
-```bash
-python examples/glados_assistant.py
+python examples/test_assistant.py
 ```
 
 ## Create Your Own AI Character

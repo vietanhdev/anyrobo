@@ -89,7 +89,7 @@ class FuturisticButton:
         )
 
         # Button text
-        self.button_text = self.canvas.create_text(
+        self.text_id = self.canvas.create_text(
             self.width / 2, self.height / 2, text=self.text, fill=self.fg_color, font=self.font
         )
 
@@ -164,7 +164,7 @@ class FuturisticButton:
         # Update appearance
         self.canvas.config(bg=self.theme.background_color)
         self.canvas.itemconfig(self.button, fill=self.theme.background_color, outline=self.bg_color)
-        self.canvas.itemconfig(self.button_text, fill=self.fg_color)
+        self.canvas.itemconfig(self.text_id, fill=self.fg_color)
 
         for item in self.corner_ids:
             self.canvas.itemconfig(item, fill=self.bg_color)
@@ -180,6 +180,39 @@ class FuturisticButton:
     def place(self, **kwargs: Any) -> None:
         """Place the button canvas"""
         self.canvas.place(**kwargs)
+
+    def set_text(self, text: str) -> None:
+        """Update the button text.
+
+        Args:
+            text: New button text
+        """
+        self.text = text
+        # Update the button display
+        self.canvas.itemconfig(self.text_id, text=text)
+
+    def set_active(self, active: bool) -> None:
+        """Set the button's active state.
+
+        Args:
+            active: Whether the button should appear active
+        """
+        if active:
+            # Highlight the button with accent color
+            self.canvas.itemconfig(self.button, outline=self.hover_color, width=2)
+            self.canvas.itemconfig(self.button, fill=self.hover_color)
+            self.canvas.itemconfig(self.text_id, fill=self.theme.background_color)
+            # Highlight corners
+            for corner in self.corner_ids:
+                self.canvas.itemconfig(corner, fill=self.hover_color, width=2)
+        else:
+            # Reset to normal state
+            self.canvas.itemconfig(self.button, outline=self.bg_color, width=2)
+            self.canvas.itemconfig(self.button, fill=self.theme.background_color)
+            self.canvas.itemconfig(self.text_id, fill=self.fg_color)
+            # Reset corners
+            for corner in self.corner_ids:
+                self.canvas.itemconfig(corner, fill=self.bg_color, width=2)
 
 
 class StatusBar:
@@ -282,13 +315,31 @@ class StatusBar:
         # Schedule next update
         self.parent.after(1000, self.update_clock)
 
-    def set_status(self, text: str) -> None:
-        """Update the status text"""
-        self.status_left.config(text=f"Status: {text}")
+    def set_status(self, text: str, color: Optional[str] = None) -> None:
+        """Update the status text with optional color.
 
-    def set_warning(self, text: str) -> None:
-        """Set warning text in status bar"""
+        Args:
+            text: Status text to display
+            color: Optional color for the status text
+        """
+        self.status_left.config(text=f"Status: {text}")
+        if color:
+            self.status_left.config(fg=color)
+        else:
+            self.status_left.config(fg=self.fg_color)
+
+    def set_warning(self, text: str, error: bool = False) -> None:
+        """Set warning text in status bar.
+
+        Args:
+            text: Warning text to display
+            error: If True, show as error (red), otherwise as warning (yellow)
+        """
         self.status_center.config(text=text)
+        if error:
+            self.status_center.config(fg=DANGER_RED)
+        else:
+            self.status_center.config(fg=WARNING_YELLOW)
 
     def pack(self, **kwargs: Any) -> None:
         """Pack the status bar frame"""
@@ -445,3 +496,7 @@ class TextDisplay:
     def place(self, **kwargs: Any) -> None:
         """Place the text display frame"""
         self.frame.place(**kwargs)
+
+
+# Alias FuturisticButton as Button for backward compatibility
+Button = FuturisticButton

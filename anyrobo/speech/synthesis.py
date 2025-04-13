@@ -1,6 +1,7 @@
 """Text-to-speech synthesis functionality for AnyRobo."""
 
 import os
+from typing import Optional
 
 import numpy as np
 
@@ -13,7 +14,7 @@ from anyrobo.models.loader import download_tts_model
 class TextToSpeech:
     """Text-to-speech synthesis using Kokoro model."""
 
-    def __init__(self, model_path: str = None, voices_path: str = None):
+    def __init__(self, model_path: Optional[str] = None, voices_path: Optional[str] = None):
         """Initialize the text-to-speech engine.
 
         Args:

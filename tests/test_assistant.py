@@ -1,6 +1,7 @@
 """Tests for AnyRobo."""
 
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 from anyrobo import AnyRobo
@@ -11,9 +12,9 @@ class TestAnyRobo(unittest.TestCase):
 
     @patch("anyrobo.speech.recognition.SpeechRecognizer")
     @patch("anyrobo.speech.synthesis.TextToSpeech")
-    def test_init(self, mock_tts, mock_recognizer):
+    def test_init(self, mock_tts: Any, mock_recognizer: Any) -> None:
         """Test initialization with default parameters."""
-        assistant = AnyRobo()
+        assistant: AnyRobo = AnyRobo()
 
         self.assertEqual(assistant.SAMPLE_RATE, 24000)
         self.assertEqual(assistant.SILENCE_THRESHOLD, 0.02)
@@ -28,9 +29,9 @@ class TestAnyRobo(unittest.TestCase):
 
     @patch("anyrobo.speech.recognition.SpeechRecognizer")
     @patch("anyrobo.speech.synthesis.TextToSpeech")
-    def test_custom_init(self, mock_tts, mock_recognizer):
+    def test_custom_init(self, mock_tts: Any, mock_recognizer: Any) -> None:
         """Test initialization with custom parameters."""
-        assistant = AnyRobo(
+        assistant: AnyRobo = AnyRobo(
             sample_rate=44100,
             silence_threshold=0.05,
             silence_duration=2.0,

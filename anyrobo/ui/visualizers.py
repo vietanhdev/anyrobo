@@ -1,6 +1,8 @@
 """Audio visualization components for the anyrobo UI system."""
 
 import random
+import tkinter as tk
+from typing import List
 
 import numpy as np
 
@@ -24,7 +26,16 @@ class AudioVisualizer:
         color: Color of the bars
     """
 
-    def __init__(self, canvas, x, y, width=200, height=60, bars=20, color=UI_BLUE):
+    def __init__(
+        self,
+        canvas: "tk.Canvas",
+        x: int,
+        y: int,
+        width: int = 200,
+        height: int = 60,
+        bars: int = 20,
+        color: str = UI_BLUE,
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -50,12 +61,12 @@ class AudioVisualizer:
             )
             self.bar_ids.append(bar_id)
 
-    def start(self):
+    def start(self) -> None:
         """Start the visualizer animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the audio visualizer"""
         if not self.running:
             return
@@ -77,7 +88,7 @@ class AudioVisualizer:
 
         self.canvas.after(100, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         # Reset to minimum height
@@ -92,7 +103,7 @@ class AudioVisualizer:
                 self.y + bar_height / 2,
             )
 
-    def set_heights(self, heights):
+    def set_heights(self, heights: List[float]) -> None:
         """Set the heights of the bars directly
 
         Args:
@@ -134,12 +145,21 @@ class LiveAudioVisualizer(AudioVisualizer):
         color: Color of the bars
     """
 
-    def __init__(self, canvas, x, y, width=200, height=60, bars=20, color=UI_BLUE):
+    def __init__(
+        self,
+        canvas: "tk.Canvas",
+        x: int,
+        y: int,
+        width: int = 200,
+        height: int = 60,
+        bars: int = 20,
+        color: str = UI_BLUE,
+    ) -> None:
         super().__init__(canvas, x, y, width, height, bars, color)
         self.audio_data = None
         self.energy_scale = 5.0  # Scale factor for energy values
 
-    def set_audio_data(self, audio_data):
+    def set_audio_data(self, audio_data: np.ndarray) -> None:
         """Set the current audio data to visualize
 
         Args:
@@ -147,7 +167,7 @@ class LiveAudioVisualizer(AudioVisualizer):
         """
         self.audio_data = audio_data
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the audio visualizer based on actual audio data"""
         if not self.running:
             return
@@ -204,11 +224,14 @@ class LiveAudioVisualizer(AudioVisualizer):
 
         self.canvas.after(100, self._animate)
 
-    def process_audio_frame(self, audio_frame):
+    def process_audio_frame(self, audio_frame: np.ndarray) -> float:
         """Process an audio frame from a microphone or audio source
 
         Args:
             audio_frame: NumPy array of audio samples from a microphone or other source
+
+        Returns:
+            Energy level of the audio frame
         """
         # Scale the input to make visualization more visible
         scaled_audio = audio_frame * 5
@@ -216,6 +239,6 @@ class LiveAudioVisualizer(AudioVisualizer):
 
         # Calculate energy levels for debugging
         if len(scaled_audio) > 0:
-            energy = np.sqrt(np.mean(scaled_audio**2))
+            energy = float(np.sqrt(np.mean(scaled_audio**2)))
             return energy
-        return 0
+        return 0.0

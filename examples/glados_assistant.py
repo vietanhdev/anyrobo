@@ -6,7 +6,7 @@ from anyrobo import AnyRobo
 from anyrobo.models.loader import download_tts_model, ensure_ollama_model
 
 
-def main():
+def main() -> None:
     """Run a GLaDOS-like AI assistant."""
     # Make sure required models are available
     download_tts_model()  # TTS model

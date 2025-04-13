@@ -28,4 +28,5 @@ class SpeechRecognizer:
         Returns:
             Dictionary with 'text' key containing the transcription
         """
-        return self.whisper_mlx.transcribe(audio_data)
+        result = self.whisper_mlx.transcribe(audio_data)
+        return dict(result)  # Ensure we return a dict

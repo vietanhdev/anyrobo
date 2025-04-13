@@ -63,8 +63,9 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
 def setup_models() -> None:
     """Download required models."""
     print("Setting up AnyRobo...")
-    tts_model_path = download_tts_model()
-    whisper_model_dir = download_whisper_model("small")
+    # Download models but we don't need to store the paths
+    download_tts_model()
+    download_whisper_model("small")
     ensure_ollama_model("llama3.2")
     print("\nSetup complete! You can now run AnyRobo.")
 
@@ -88,8 +89,9 @@ def main(args: Optional[List[str]] = None) -> int:
     # Create and run the assistant
     try:
         # Make sure models are available
-        tts_model_path = download_tts_model()
-        whisper_model_dir = download_whisper_model("small")
+        # Download models but we don't need to store the paths
+        download_tts_model()
+        download_whisper_model("small")
         ensure_ollama_model(parsed_args.model)
 
         # Create the assistant

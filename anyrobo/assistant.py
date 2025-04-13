@@ -3,7 +3,7 @@
 import signal
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import sounddevice as sd
@@ -46,7 +46,7 @@ class AnyRobo:
         self.CHUNK_SIZE = 300  # size of text chunks for processing
 
         # ollama settings
-        self.messages = []
+        self.messages: List[Dict[str, str]] = []
         self.SYSTEM_PROMPT = (
             system_prompt
             or "Give a conversational response to the following statement or question in 1-2 sentences. The response should be natural and engaging, and the length depends on what you have to say."
@@ -61,19 +61,21 @@ class AnyRobo:
         self.shutdown_event = Event()
         signal.signal(signal.SIGINT, self._signal_handler)
 
-    def _signal_handler(self, signum, frame):
+    def _signal_handler(self, signum: int, frame: Any) -> None:
         """Handle interrupt signals."""
         print("\nStopping...")
         self.shutdown_event.set()
 
-    def record_and_transcribe(self):
+    def record_and_transcribe(self) -> None:
         """Main loop: record audio, transcribe, and respond."""
         # state for audio recording
         audio_buffer = []
         silence_frames = 0
         total_frames = 0
 
-        def callback(indata, frames, time_info, status):
+        def callback(
+            indata: np.ndarray, frames: int, time_info: dict, status: sd.CallbackFlags
+        ) -> None:
             # callback function that processes incoming audio frames
             if self.shutdown_event.is_set():
                 raise sd.CallbackStop()
@@ -124,7 +126,7 @@ class AnyRobo:
         except sd.CallbackStop:
             pass
 
-    def create_and_play_response(self, prompt: str):
+    def create_and_play_response(self, prompt: str) -> None:
         """Generate and speak a response to the user's input."""
         if self.shutdown_event.is_set():
             return

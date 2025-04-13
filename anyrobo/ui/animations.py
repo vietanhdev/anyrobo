@@ -2,6 +2,9 @@
 
 import math
 import random
+import tkinter as tk
+from dataclasses import dataclass
+from typing import List, Optional
 
 # UI colors
 UI_BLUE = "#00FFFF"
@@ -11,11 +14,22 @@ DANGER_RED = "#FF3030"
 WARNING_YELLOW = "#FFDD00"
 
 
-class CircularProgressAnimation:
-    """Animated circular progress indicator for UI interfaces.
+@dataclass
+class HexagonData:
+    """Data for a single hexagon in the grid."""
 
-    This component creates a circular progress animation that can be used
-    to indicate loading or processing states.
+    id: int
+    points: List[float]
+    pulse: float
+    pulse_speed: float
+    brightness: float
+
+
+class CircularProgressAnimation:
+    """Circular progress animation for UI interfaces.
+
+    This component creates a circular arc that rotates to indicate
+    progress or an ongoing operation.
 
     Args:
         canvas: The tkinter canvas to draw on
@@ -27,7 +41,16 @@ class CircularProgressAnimation:
         width: Line width of the circle
     """
 
-    def __init__(self, canvas, x, y, size=100, color="#5CE1E6", bg_color="#002137", width=8):
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        x: int,
+        y: int,
+        size: int = 100,
+        color: str = "#5CE1E6",
+        bg_color: str = "#002137",
+        width: int = 8,
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -39,8 +62,8 @@ class CircularProgressAnimation:
         self.arc_length = 120  # Degrees
         self.speed = 3
         self.running = False
-        self.arc_id = None
-        self.bg_id = None
+        self.arc_id: Optional[int] = None
+        self.bg_id: Optional[int] = None
 
         # Create background circle
         self.bg_id = self.canvas.create_oval(
@@ -53,12 +76,12 @@ class CircularProgressAnimation:
             fill="",
         )
 
-    def start(self):
+    def start(self) -> None:
         """Start the animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the progress indicator"""
         if not self.running:
             return
@@ -67,7 +90,7 @@ class CircularProgressAnimation:
             self.canvas.delete(self.arc_id)
 
         start_angle = self.angle
-        end_angle = (self.angle + self.arc_length) % 360
+        # We don't need to calculate end_angle as we use arc_length directly in create_arc
 
         # Calculate arc coordinates
         x1 = self.x - self.size / 2
@@ -90,7 +113,7 @@ class CircularProgressAnimation:
         self.angle = (self.angle + self.speed) % 360
         self.canvas.after(20, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         if self.arc_id:
@@ -114,8 +137,15 @@ class PulsatingCircle:
     """
 
     def __init__(
-        self, canvas, x, y, min_radius=20, max_radius=30, color="#5CE1E6", pulse_speed=0.05
-    ):
+        self,
+        canvas: tk.Canvas,
+        x: int,
+        y: int,
+        min_radius: float = 20,
+        max_radius: float = 30,
+        color: str = "#5CE1E6",
+        pulse_speed: float = 0.05,
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -125,20 +155,17 @@ class PulsatingCircle:
         self.color = color
         self.pulse_speed = pulse_speed
         self.growing = True
-        self.circle_id = None
-        self.running = False
-
-        # Create initial circle
         self.circle_id = canvas.create_oval(
             x - min_radius, y - min_radius, x + min_radius, y + min_radius, fill=color, outline=""
         )
+        self.running = False
 
-    def start(self):
+    def start(self) -> None:
         """Start the pulsating animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the pulsating circle"""
         if not self.running:
             return
@@ -163,7 +190,7 @@ class PulsatingCircle:
 
         self.canvas.after(20, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         # Reset to minimum size
@@ -190,17 +217,24 @@ class HexagonGrid:
         alpha: Transparency of the hexagons (not fully supported in Tkinter)
     """
 
-    def __init__(self, canvas, size=40, gap=10, color=UI_BLUE, alpha=0.2):
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        size: int = 40,
+        gap: int = 10,
+        color: str = UI_BLUE,
+        alpha: float = 0.2,
+    ) -> None:
         self.canvas = canvas
         self.size = size
         self.gap = gap
         self.color = color
         self.alpha = alpha
-        self.hexagons = []
+        self.hexagons: List[HexagonData] = []
         self.running = False
         self.create_grid()
 
-    def create_grid(self):
+    def create_grid(self) -> None:
         """Create hexagonal grid to cover the canvas"""
         width = self.canvas.winfo_width() or 800
         height = self.canvas.winfo_height() or 600
@@ -235,38 +269,38 @@ class HexagonGrid:
 
                 # Store hexagon info
                 self.hexagons.append(
-                    {
-                        "id": hex_id,
-                        "points": points,
-                        "pulse": random.random(),
-                        "pulse_speed": random.uniform(0.01, 0.05),
-                        "brightness": random.uniform(0.1, 0.3),
-                    }
+                    HexagonData(
+                        id=hex_id,
+                        points=points,
+                        pulse=random.random(),
+                        pulse_speed=random.uniform(0.01, 0.05),
+                        brightness=random.uniform(0.1, 0.3),
+                    )
                 )
 
-    def start(self):
+    def start(self) -> None:
         """Start the animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the hexagonal grid"""
         if not self.running:
             return
 
         for hex_data in self.hexagons:
             # Update pulse value
-            hex_data["pulse"] = (hex_data["pulse"] + hex_data["pulse_speed"]) % 1.0
+            hex_data.pulse = (hex_data.pulse + hex_data.pulse_speed) % 1.0
 
             # Toggle visibility occasionally
             if random.random() < 0.05:  # 5% chance to toggle visibility
-                current_state = self.canvas.itemcget(hex_data["id"], "state")
+                current_state = self.canvas.itemcget(hex_data.id, "state")
                 new_state = "hidden" if current_state == "normal" else "normal"
-                self.canvas.itemconfig(hex_data["id"], state=new_state)
+                self.canvas.itemconfig(hex_data.id, state=new_state)
 
         self.canvas.after(50, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
 
@@ -284,21 +318,23 @@ class ScanLine:
         thickness: Thickness of the scan line
     """
 
-    def __init__(self, canvas, color=UI_BLUE, speed=2, thickness=3):
+    def __init__(
+        self, canvas: tk.Canvas, color: str = UI_BLUE, speed: int = 2, thickness: int = 3
+    ) -> None:
         self.canvas = canvas
         self.color = color
         self.speed = speed
         self.thickness = thickness
         self.position = 0
-        self.scan_id = None
+        self.scan_id: Optional[int] = None
         self.running = False
 
-    def start(self):
+    def start(self) -> None:
         """Start the scan line animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the scan line"""
         if not self.running:
             return
@@ -326,7 +362,7 @@ class ScanLine:
 
         self.canvas.after(20, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         if self.scan_id:
@@ -348,19 +384,21 @@ class TargetLock:
         color: Color of the reticle
     """
 
-    def __init__(self, canvas, x, y, size=50, color=DANGER_RED):
+    def __init__(
+        self, canvas: tk.Canvas, x: int, y: int, size: int = 50, color: str = DANGER_RED
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
         self.size = size
         self.color = color
-        self.shape_ids = []
+        self.shape_ids: List[int] = []
         self.running = False
         self.rotation = 0
 
         self._create_shapes()
 
-    def _create_shapes(self):
+    def _create_shapes(self) -> None:
         """Create the targeting shapes"""
         # Outer circle
         self.shape_ids.append(
@@ -446,12 +484,12 @@ class TargetLock:
             )
         )
 
-    def start(self):
+    def start(self) -> None:
         """Start the target lock animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the target lock"""
         if not self.running:
             return
@@ -462,13 +500,13 @@ class TargetLock:
 
         self.canvas.after(50, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         for shape_id in self.shape_ids:
             self.canvas.itemconfig(shape_id, state="normal")
 
-    def set_position(self, x, y):
+    def set_position(self, x: int, y: int) -> None:
         """Move the target lock to a new position"""
         dx = x - self.x
         dy = y - self.y

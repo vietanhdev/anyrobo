@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: F821
 """
 Simple JARVIS UI Demo
 
@@ -7,25 +8,23 @@ A simplified JARVIS-inspired UI that works with minimal dependencies
 
 import os
 import queue
+import re
 import sys
 import threading
 import time
 import tkinter as tk
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from tkinter import font, ttk
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import sounddevice as sd
+from ollama import chat
 
-# Add the parent directory to sys.path to allow importing anyrobo in development mode
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# Import AnyRobo components
 from anyrobo.models.loader import download_tts_model, ensure_ollama_model
 from anyrobo.speech.recognition import SpeechRecognizer
 from anyrobo.speech.synthesis import TextToSpeech
-
-# Import UI components from anyrobo.ui
 from anyrobo.ui import (
     CircularProgressAnimation,
     FuturisticButton,
@@ -37,24 +36,30 @@ from anyrobo.ui import (
     get_theme,
 )
 
+# Add the parent directory to sys.path to allow importing anyrobo in development mode
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
 # Constants for UI
-DANGER_RED = "#FF3030"
-DANGER_ORANGE = "#FF7700"
-WARNING_YELLOW = "#FFDD00"
-UI_BLUE = "#1E90FF"  # Changed from cyan to royal blue
-UI_LIGHT_BLUE = "#87CEFA"  # Light sky blue for accents
-UI_MEDIUM_BLUE = "#4682B4"  # Steel blue for secondary elements
-UI_DARK_BLUE = "#0A1F33"  # Slightly adjusted dark blue
-BG_COLOR = "#0A192F"  # Darker blue background
+DANGER_RED: str = "#FF3030"
+DANGER_ORANGE: str = "#FF7700"
+WARNING_YELLOW: str = "#FFDD00"
+UI_BLUE: str = "#1E90FF"  # Changed from cyan to royal blue
+UI_LIGHT_BLUE: str = "#87CEFA"  # Light sky blue for accents
+UI_MEDIUM_BLUE: str = "#4682B4"  # Steel blue for secondary elements
+UI_DARK_BLUE: str = "#0A1F33"  # Slightly adjusted dark blue
+BG_COLOR: str = "#0A192F"  # Darker blue background
 
 # Set default mode to safe
-DEFAULT_DANGEROUS = False
+DEFAULT_DANGEROUS: bool = False
 
 
 class JarvisUI:
     """JARVIS-inspired UI with animations and text display"""
 
-    def __init__(self, root, fullscreen=True, dangerous=DEFAULT_DANGEROUS):
+    def __init__(
+        self, root: tk.Tk, fullscreen: bool = True, dangerous: bool = DEFAULT_DANGEROUS
+    ) -> None:
         self.root = root
         self.root.title("J.A.R.V.I.S - PERSONAL ASSISTANT")
 
@@ -107,14 +112,14 @@ class JarvisUI:
         self.root.bind("<Configure>", self.on_resize)
 
         # Voice control state
-        self.is_listening = False
-        self.audio_buffer = []
-        self.audio_queue = queue.Queue()
-        self.silence_frames = 0
+        self.is_listening: bool = False
+        self.audio_buffer: List[float] = []
+        self.audio_queue: queue.Queue[Any] = queue.Queue()
+        self.silence_frames: int = 0
 
         # Add lock for processing audio
-        self.processing_lock = threading.Lock()
-        self.is_processing = False
+        self.processing_lock: threading.Lock = threading.Lock()
+        self.is_processing: bool = False
 
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -122,20 +127,20 @@ class JarvisUI:
         # Example of adding text after a delay
         self.root.after(1000, self.show_welcome_message)
 
-    def setup_fonts(self):
+    def setup_fonts(self) -> None:
         """Setup custom fonts for the UI"""
         self.title_font = font.Font(family="Helvetica", size=28, weight="bold")
         self.text_font = font.Font(family="Courier", size=14)
         self.status_font = font.Font(family="Helvetica", size=11)
         self.button_font = font.Font(family="Helvetica", size=12, weight="bold")
 
-    def toggle_fullscreen(self, event=None):
+    def toggle_fullscreen(self, event: Optional[tk.Event] = None) -> str:
         """Toggle fullscreen mode"""
         self.fullscreen = not self.fullscreen
         self.root.attributes("-fullscreen", self.fullscreen)
         return "break"
 
-    def create_header(self):
+    def create_header(self) -> None:
         """Create the header section with title"""
         header_frame = tk.Frame(self.main_frame, bg=self.theme.background_color)
         header_frame.pack(fill=tk.X, pady=(0, 20))
@@ -188,7 +193,7 @@ class JarvisUI:
         )
         subtitle_label.pack(side=tk.LEFT, padx=(10, 0), pady=(8, 0))
 
-    def blink_classified(self):
+    def blink_classified(self) -> None:
         """Blink the classified indicator"""
         if not hasattr(self, "classified_label"):
             return
@@ -202,7 +207,7 @@ class JarvisUI:
         self.classified_label.config(background=new_bg)
         self.root.after(500, self.blink_classified)
 
-    def create_animation_canvas(self):
+    def create_animation_canvas(self) -> None:
         """Create canvas for animations"""
         canvas_frame = tk.Frame(self.main_frame, bg=self.theme.background_color)
         canvas_frame.pack(fill=tk.BOTH, expand=True)
@@ -213,7 +218,7 @@ class JarvisUI:
         # Create animations
         self.setup_animations()
 
-    def setup_animations(self):
+    def setup_animations(self) -> None:
         """Setup all animations on the canvas"""
         canvas_width = self.canvas.winfo_width() or 1024
         canvas_height = self.canvas.winfo_height() or 500
@@ -227,8 +232,8 @@ class JarvisUI:
         # Circular progress animation (top-left)
         self.circle_progress = CircularProgressAnimation(
             self.canvas,
-            canvas_width * 0.15,
-            canvas_height * 0.25,
+            int(canvas_width * 0.15),
+            int(canvas_height * 0.25),
             size=80,
             color=self.theme.primary_color,
             bg_color=self.theme.background_color,
@@ -237,9 +242,9 @@ class JarvisUI:
         # Audio visualizer (bottom)
         self.audio_vis = LiveAudioVisualizer(
             self.canvas,
-            canvas_width * 0.5,
-            canvas_height * 0.85,
-            width=canvas_width * 0.7,
+            int(canvas_width * 0.5),
+            int(canvas_height * 0.85),
+            width=int(canvas_width * 0.7),
             height=50,
             bars=40,
             color=self.theme.primary_color,
@@ -266,21 +271,21 @@ class JarvisUI:
             anchor="se",
         )
 
-    def start_animations(self):
+    def start_animations(self) -> None:
         """Start all animations"""
         self.hex_grid.start()
         self.scan_line.start()
         self.circle_progress.start()
         self.audio_vis.start()
 
-    def stop_animations(self):
+    def stop_animations(self) -> None:
         """Stop all animations"""
         self.hex_grid.stop()
         self.scan_line.stop()
         self.circle_progress.stop()
         self.audio_vis.stop()
 
-    def create_text_display(self):
+    def create_text_display(self) -> None:
         """Create the text display area"""
         # Use TextDisplay component from the UI module
         self.text_display_component = TextDisplay(
@@ -290,19 +295,19 @@ class JarvisUI:
 
         # Set text display reference for easy access
         self.text_display = self.text_display_component.text
-        
+
         # Set up scrolling variables
-        self.auto_scroll_enabled = True  # Flag to control auto-scrolling
-        self.user_scrolled = False  # Track if user manually scrolled
-        
+        self.auto_scroll_enabled: bool = True  # Flag to control auto-scrolling
+        self.user_scrolled: bool = False  # Track if user manually scrolled
+
         # Add scroll event bindings
         self.text_display.bind("<MouseWheel>", self._on_user_scroll)  # Windows
         self.text_display.bind("<Button-4>", self._on_user_scroll)  # Linux scroll up
         self.text_display.bind("<Button-5>", self._on_user_scroll)  # Linux scroll down
-        
+
         # Initial scroll to end
         self.text_display.see(tk.END)
-        
+
         # Set up smooth auto-scroll
         self._setup_smooth_auto_scroll()
 
@@ -313,36 +318,37 @@ class JarvisUI:
                 "WARNING: Combat mode activated. Weapon systems online.", "warning"
             )
 
-    def _on_user_scroll(self, event):
+    def _on_user_scroll(self, event: tk.Event) -> None:
         """Detect when user manually scrolls"""
         # Get current scroll position
         y_view = self.text_display.yview()
-        
+
         # If user scrolls away from bottom, disable auto-scroll
         if y_view[1] < 0.99:
             self.user_scrolled = True
             self.auto_scroll_enabled = False
-        
+
         # If user scrolls to bottom, re-enable auto-scroll
         elif y_view[1] >= 0.99:
             self.user_scrolled = False
             self.auto_scroll_enabled = True
-            
+
         # Let the event propagate
         return
 
-    def _setup_smooth_auto_scroll(self):
+    def _setup_smooth_auto_scroll(self) -> None:
         """Set up smoother automatic scrolling functionality"""
-        def smooth_scroll_to_bottom():
-            if not hasattr(self, 'text_display') or not self.text_display.winfo_exists():
+
+        def smooth_scroll_to_bottom() -> None:
+            if not hasattr(self, "text_display") or not self.text_display.winfo_exists():
                 return  # Widget doesn't exist anymore
-                
+
             try:
                 # Check if auto-scroll is enabled
                 if self.auto_scroll_enabled:
                     # Get current position
                     y_view = self.text_display.yview()
-                    
+
                     # If we're already at the bottom, just maintain
                     if y_view[1] >= 0.99:
                         self.text_display.see(tk.END)
@@ -351,25 +357,27 @@ class JarvisUI:
                         # Calculate a step size for smooth scrolling
                         current_pos = y_view[0]
                         target_pos = 1.0  # Bottom of text
-                        step = min(0.05, (target_pos - current_pos) / 3)  # Smaller of 0.05 or 1/3 of distance
-                        
+                        step = min(
+                            0.05, (target_pos - current_pos) / 3
+                        )  # Smaller of 0.05 or 1/3 of distance
+
                         if step > 0.001:  # Only move if significant change
                             # Move incrementally toward bottom
                             new_pos = current_pos + step
                             self.text_display.yview_moveto(new_pos)
-                
+
                 # Continue scrolling
                 self.root.after(16, smooth_scroll_to_bottom)  # ~60fps for smooth animation
-                
+
             except Exception as e:
                 print(f"Smooth scroll error: {e}")
                 # Try again after a short delay
                 self.root.after(100, smooth_scroll_to_bottom)
-        
+
         # Start smooth scrolling loop
         self.root.after(16, smooth_scroll_to_bottom)
 
-    def create_button_panel(self):
+    def create_button_panel(self) -> None:
         """Create buttons for interaction"""
         button_frame = tk.Frame(self.main_frame, bg=self.theme.background_color)
         button_frame.pack(fill=tk.X, pady=(0, 10))
@@ -437,7 +445,7 @@ class JarvisUI:
             self.alert_button.pack(side=tk.LEFT, padx=(0, 10))
             self.alert_active = False
 
-    def show_status(self):
+    def show_status(self) -> None:
         """Show system status information"""
         status_text = (
             (
@@ -459,7 +467,7 @@ class JarvisUI:
 
         self.add_jarvis_text(status_text)
 
-    def toggle_alert(self):
+    def toggle_alert(self) -> None:
         """Toggle alert state"""
         if hasattr(self, "alert_active") and hasattr(self, "alert_button"):
             self.alert_active = not self.alert_active
@@ -477,7 +485,7 @@ class JarvisUI:
                     "Alert deactivated. Security status normalized.", "system"
                 )
 
-    def create_status_bar(self):
+    def create_status_bar(self) -> None:
         """Create the status bar at the bottom"""
         # Use StatusBar component from the UI module
         self.status_bar = StatusBar(
@@ -487,40 +495,40 @@ class JarvisUI:
 
         # Update clock is handled by the StatusBar component
 
-    def add_jarvis_text(self, text):
+    def add_jarvis_text(self, text: str) -> None:
         """Add text from JARVIS to the display"""
         self.text_display_component.add_system_text(text, "JARVIS")
         # Re-enable auto-scrolling when system adds text
         self.auto_scroll_enabled = True
 
-    def add_user_text(self, text):
+    def add_user_text(self, text: str) -> None:
         """Add user text to the display"""
         self.text_display_component.add_user_text(text)
         # Re-enable auto-scrolling when user text is added
         self.auto_scroll_enabled = True
 
-    def add_text(self, text, tag=None):
+    def add_text(self, text: str, tag: Optional[str] = None) -> None:
         """Add text with optional formatting"""
         self.text_display_component.add_text(text, tag)
         # Re-enable auto-scrolling when text is added
         self.auto_scroll_enabled = True
 
-    def set_status(self, text):
+    def set_status(self, text: str) -> None:
         """Update the status text"""
         self.status_bar.set_status(text)
 
-    def set_warning(self, text):
+    def set_warning(self, text: str) -> None:
         """Set warning text in status bar"""
         self.status_bar.set_warning(text)
 
-    def on_resize(self, event):
+    def on_resize(self, event: tk.Event) -> None:
         """Handle window resize event"""
         # Only handle if it's the root window resizing
         if event.widget == self.root:
             # Wait a bit to make sure the canvas has been resized
             self.root.after(100, self.reposition_animations)
 
-    def reposition_animations(self):
+    def reposition_animations(self) -> None:
         """Reposition animations after resize"""
         # Stop animations
         self.stop_animations()
@@ -534,7 +542,7 @@ class JarvisUI:
         # Restart animations
         self.start_animations()
 
-    def show_weather(self):
+    def show_weather(self) -> None:
         """Show weather information"""
         weather_text = (
             "CURRENT WEATHER:\n"
@@ -548,7 +556,7 @@ class JarvisUI:
         )
         self.add_jarvis_text(weather_text)
 
-    def show_calendar(self):
+    def show_calendar(self) -> None:
         """Show calendar information"""
         today = time.strftime("%A, %B %d")
         calendar_text = (
@@ -563,26 +571,26 @@ class JarvisUI:
         )
         self.add_jarvis_text(calendar_text)
 
-    def setup_voice_system(self):
+    def setup_voice_system(self) -> None:
         """Initialize the voice system components"""
         try:
             # Download required models without unsupported parameters
             download_tts_model()  # TTS model
             ensure_ollama_model("llama3.2")  # LLM
-            
+
             # Speech settings
-            self.sample_rate = 24000
-            self.silence_threshold = 0.01  # Lower threshold to better detect quiet speech
-            self.silence_duration = 2.0  # Increase duration to allow longer pauses
-            self.voice = "am_michael"  # Using a masculine voice for JARVIS
-            self.speed = 1.2
-            
+            self.sample_rate: int = 24000
+            self.silence_threshold: float = 0.01  # Lower threshold to better detect quiet speech
+            self.silence_duration: float = 2.0  # Increase duration to allow longer pauses
+            self.voice: str = "am_michael"  # Using a masculine voice for JARVIS
+            self.speed: float = 1.2
+
             # TTS optimization settings
-            self.tts_chunk_size = 40  # Process smaller chunks for faster response
-            self.max_queued_chunks = 3  # Don't queue too many chunks ahead
-            
+            self.tts_chunk_size: int = 40  # Process smaller chunks for faster response
+            self.max_queued_chunks: int = 3  # Don't queue too many chunks ahead
+
             # System prompt for JARVIS personality
-            self.system_prompt = (
+            self.system_prompt: str = (
                 "You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), "
                 "the advanced AI assistant created by Tony Stark. "
                 "You have a British accent, dry wit, and immense technical knowledge. "
@@ -593,74 +601,74 @@ class JarvisUI:
                 "Avoid unnecessary explanations, pleasantries or verbosity. Prioritize delivering information "
                 "in the most direct way possible while maintaining your personality."
             )
-            
+
             # Initialize components with optimized settings
             self.speech_recognizer = SpeechRecognizer(model="small", batch_size=12)
             self.tts = TextToSpeech()  # Use default settings (no quantized parameter)
-            
+
             # Audio sequencing
-            self.tts_queue = queue.Queue()  # Queue for TTS chunks
-            self.tts_playing = False
-            self.tts_sequence_number = 0  # For ordering audio chunks
-            self.pending_audio_chunks = {}  # Store chunks by sequence number
-            
+            self.tts_queue: queue.Queue = queue.Queue()  # Queue for TTS chunks
+            self.tts_playing: bool = False
+            self.tts_sequence_number: int = 0  # For ordering audio chunks
+            self.pending_audio_chunks: Dict[int, np.ndarray] = {}  # Store chunks by sequence number
+
             # Audio thread control
-            self.tts_thread_active = True
+            self.tts_thread_active: bool = True
             self.executor = ThreadPoolExecutor(max_workers=2)
-            
+
             # Start TTS player thread
             self.tts_thread = threading.Thread(target=self._tts_player_thread, daemon=True)
             self.tts_thread.start()
-            
+
             # Chat history
-            self.messages = []
-            
+            self.messages: List[Dict[str, str]] = []
+
             # Set voice system as available
-            self.voice_available = True
+            self.voice_available: bool = True
             print("Voice system initialized successfully with optimized settings")
-            
+
         except Exception as e:
             print(f"Failed to initialize voice system: {e}")
             self.voice_available = False
 
-    def _tts_player_thread(self):
+    def _tts_player_thread(self) -> None:
         """Background thread that plays TTS audio as it becomes available"""
         try:
             next_chunk_to_play = 0  # Next sequence number to play
-            
+
             while self.tts_thread_active:
                 # Check if we have the next chunk in our pending dictionary
                 if next_chunk_to_play in self.pending_audio_chunks:
                     # Get the audio chunk with the current sequence number
                     audio_chunk = self.pending_audio_chunks.pop(next_chunk_to_play)
-                    
+
                     # Set playing flag
                     self.tts_playing = True
-                    
+
                     # Update UI to show speaking state
                     self.root.after(0, lambda: self.set_status("Speaking"))
-                    
+
                     # Temporarily pause audio input if we're listening
                     was_listening = False
-                    if hasattr(self, 'is_listening') and self.is_listening:
+                    if hasattr(self, "is_listening") and self.is_listening:
                         was_listening = True
                         self.root.after(0, self.pause_listening)
-                    
+
                     try:
                         # Play the audio
                         with sd.OutputStream(
                             samplerate=self.sample_rate,
                             channels=1,
                             dtype=np.float32,
-                            blocksize=4096  # Larger blocksize for smoother playback
+                            blocksize=4096,  # Larger blocksize for smoother playback
                         ) as stream:
                             stream.write(audio_chunk.reshape(-1, 1))
                     except Exception as e:
                         print(f"Error playing audio chunk {next_chunk_to_play}: {e}")
-                    
+
                     # Increment for next chunk
                     next_chunk_to_play += 1
-                    
+
                     # Clear playing flag if no more chunks
                     if len(self.pending_audio_chunks) == 0:
                         self.tts_playing = False
@@ -670,25 +678,27 @@ class JarvisUI:
                 else:
                     # No chunk available yet, wait a bit
                     time.sleep(0.05)
-                    
+
                     # If we've been waiting for new chunks and the queue is empty,
                     # check if we should reset the sequence counter
-                    if (not self.tts_playing and 
-                        len(self.pending_audio_chunks) == 0 and 
-                        self.tts_queue.empty()):
+                    if (
+                        not self.tts_playing
+                        and len(self.pending_audio_chunks) == 0
+                        and self.tts_queue.empty()
+                    ):
                         next_chunk_to_play = 0  # Reset for next session
                         time.sleep(0.1)  # Avoid busy waiting
-        
+
         except Exception as e:
             print(f"Error in TTS player thread: {e}")
             self.tts_playing = False
-    
-    def _process_tts_chunk(self, text, voice, speed, seq_num):
+
+    def _process_tts_chunk(self, text: str, voice: str, speed: float, seq_num: int) -> None:
         """Process a TTS chunk and add to playback queue with sequence number"""
         try:
             if not text.strip():
                 return
-                
+
             audio_data = self.tts.generate_audio(text, voice, speed)
             if len(audio_data) > 0:
                 # Store with sequence number for ordered playback
@@ -696,97 +706,101 @@ class JarvisUI:
         except Exception as e:
             print(f"Error generating TTS audio for chunk {seq_num}: {e}")
 
-    def pause_listening(self):
+    def pause_listening(self) -> None:
         """Temporarily pause audio input without changing UI state"""
-        if hasattr(self, 'is_listening') and self.is_listening:
+        if hasattr(self, "is_listening") and self.is_listening:
             self.is_listening_paused = True
             # Show visual indicator that listening is paused during speech
             self.set_status("Speaking (input paused)")
-            if hasattr(self, 'voice_button'):
-                self.voice_button.update_theme('default')
+            if hasattr(self, "voice_button"):
+                self.voice_button.update_theme("default")
                 self.voice_button.canvas.itemconfig(
                     self.voice_button.button_text, text="INPUT PAUSED"
                 )
-    
-    def resume_listening(self):
+
+    def resume_listening(self) -> None:
         """Resume audio input if it was paused"""
-        if hasattr(self, 'is_listening_paused') and self.is_listening_paused:
+        if hasattr(self, "is_listening_paused") and self.is_listening_paused:
             self.is_listening_paused = False
             if self.is_listening:
                 self.set_status("Listening")
-                if hasattr(self, 'voice_button'):
-                    self.voice_button.update_theme('danger' if not self.dangerous else 'default')
+                if hasattr(self, "voice_button"):
+                    self.voice_button.update_theme("danger" if not self.dangerous else "default")
                     self.voice_button.canvas.itemconfig(
                         self.voice_button.button_text, text="STOP VOICE INPUT"
                     )
-                    
-    def start_listening(self):
+
+    def start_listening(self) -> None:
         """Start listening for voice input"""
         if self.is_listening:
             return
-            
+
         # Don't start listening if TTS is playing
-        if hasattr(self, 'tts_playing') and self.tts_playing:
+        if hasattr(self, "tts_playing") and self.tts_playing:
             self.add_text("Cannot start voice input while JARVIS is speaking.", "warning")
             return
-            
+
         self.is_listening = True
         self.is_listening_paused = False
-        
+
         # Update UI
-        if hasattr(self, 'voice_button'):
-            self.voice_button.update_theme('danger' if not self.dangerous else 'default')
+        if hasattr(self, "voice_button"):
+            self.voice_button.update_theme("danger" if not self.dangerous else "default")
             # Update text directly since we can't change the button text easily
-            self.voice_button.canvas.itemconfig(self.voice_button.button_text, text="STOP VOICE INPUT")
-        
+            self.voice_button.canvas.itemconfig(
+                self.voice_button.button_text, text="STOP VOICE INPUT"
+            )
+
         self.set_status("Listening")
         self.add_text("Voice recognition activated. Speak now...", "system")
-        
+
         # Reset audio buffer and counters
         self.audio_buffer = []
         self.silence_frames = 0
-        
+
         # Start audio stream in a separate thread
         threading.Thread(target=self._listen_for_audio, daemon=True).start()
 
-    def _listen_for_audio(self):
+    def _listen_for_audio(self) -> None:
         """Listen for audio input and process it"""
         try:
             # Tracking variables for better silence detection
             self.audio_data_being_captured = False
             last_active_time = time.time()
             min_recording_time = 1.0  # Minimum recording time in seconds
-                
-            def audio_callback(indata, frames, time_info, status):
+
+            def audio_callback(
+                indata: np.ndarray, frames: int, time_info: dict, status: sd.CallbackFlags
+            ) -> None:
                 """Callback for audio stream"""
                 nonlocal last_active_time
-                
+
                 if not self.is_listening:
                     raise sd.CallbackStop
-                
+
                 # Skip processing if TTS is playing or listening is paused
-                if hasattr(self, 'tts_playing') and self.tts_playing:
+                if hasattr(self, "tts_playing") and self.tts_playing:
                     return
-                
-                if hasattr(self, 'is_listening_paused') and self.is_listening_paused:
+
+                if hasattr(self, "is_listening_paused") and self.is_listening_paused:
                     return
-                
+
                 if status:
                     print(f"Audio status: {status}")
-                
+
                 # Get audio data and calculate volume level
                 audio = indata.flatten()
                 level = np.abs(audio).mean()
-                
+
                 # Add to buffer (always capture data)
                 self.audio_buffer.extend(audio.tolist())
-                
+
                 # Update visualizer if it exists
-                if hasattr(self, 'audio_vis') and isinstance(self.audio_vis, LiveAudioVisualizer):
+                if hasattr(self, "audio_vis") and isinstance(self.audio_vis, LiveAudioVisualizer):
                     # Scale audio to make bars visible
                     scaled_audio = audio * 5
                     self.audio_vis.set_audio_data(scaled_audio)
-                
+
                 # Detect speech activity
                 if level >= self.silence_threshold:
                     # Active speech detected
@@ -797,58 +811,56 @@ class JarvisUI:
                     # Count silent frames only if we're recording
                     if self.audio_data_being_captured:
                         self.silence_frames += len(audio)
-                
+
                 # Process audio when:
                 # 1. We have active speech and
                 # 2. We detect an extended silence after speech and
                 # 3. We've been recording for at least the minimum time
-                current_time = time.time()
-                recording_duration = current_time - last_active_time
-                
-                if (self.audio_data_being_captured and 
-                    self.silence_frames > self.silence_duration * self.sample_rate and
-                    len(self.audio_buffer) > self.sample_rate * min_recording_time):
-                    
+                if (
+                    self.audio_data_being_captured
+                    and self.silence_frames > self.silence_duration * self.sample_rate
+                    and len(self.audio_buffer) > self.sample_rate * min_recording_time
+                ):
                     # Create a copy to avoid race conditions
                     audio_segment = np.array(self.audio_buffer, dtype=np.float32)
-                    
+
                     # Only process significant audio
                     if len(audio_segment) > self.sample_rate:
                         # Process in main thread to avoid threading issues
                         self.root.after(0, lambda a=audio_segment: self._process_audio(a))
-                    
+
                     # Reset state
                     self.audio_buffer = []
                     self.silence_frames = 0
                     self.audio_data_being_captured = False
-            
+
             # Start audio stream
             with sd.InputStream(
                 callback=audio_callback,
                 channels=1,
                 samplerate=self.sample_rate,
                 dtype=np.float32,
-                blocksize=int(0.05 * self.sample_rate)  # 50ms blocks for more responsive detection
+                blocksize=int(0.05 * self.sample_rate),  # 50ms blocks for more responsive detection
             ):
                 # Keep running until stopped
                 while self.is_listening:
                     sd.sleep(100)
-                    
+
         except Exception as e:
             print(f"Error in audio listening: {e}")
             self.root.after(0, lambda: self.add_text(f"Audio error: {str(e)}", "error"))
             self.root.after(0, self.stop_listening)
 
-    def _process_audio(self, audio_segment):
+    def _process_audio(self, audio_segment: np.ndarray) -> None:
         """Process recorded audio segment"""
         if not self.is_listening:
             return
-            
+
         # Skip if TTS is playing or listening is paused
-        if hasattr(self, 'tts_playing') and self.tts_playing:
+        if hasattr(self, "tts_playing") and self.tts_playing:
             return
-            
-        if hasattr(self, 'is_listening_paused') and self.is_listening_paused:
+
+        if hasattr(self, "is_listening_paused") and self.is_listening_paused:
             return
 
         # Use a lock to prevent multiple processing at the same time
@@ -895,7 +907,7 @@ class JarvisUI:
             if self.is_listening:
                 self.set_status("Listening")
 
-    def generate_response(self):
+    def generate_response(self) -> None:
         """Generate a response using the LLM and TTS"""
         if not hasattr(self, "voice_available") or not self.voice_available:
             return
@@ -911,86 +923,83 @@ class JarvisUI:
             print(f"Error generating response: {e}")
             self.add_text(f"Error generating response: {str(e)}", "error")
             self.set_status("Online")
-            
-    def _generate_and_speak_response(self):
+
+    def _generate_and_speak_response(self) -> None:
         """Generate and speak a response based on chat history"""
         try:
-            from ollama import chat
-            import re  # For improved sentence detection
-            
             # Generate response
             stream = chat(
-                model='llama3.2',
-                messages=[{
-                    'role': 'system',
-                    'content': self.system_prompt
-                }] + self.messages,
+                model="llama3.2",
+                messages=[{"role": "system", "content": self.system_prompt}] + self.messages,
                 stream=True,
             )
-            
+
             # State for processing response
             buffer = ""
             complete_response = ""
             tts_futures = []
-            
+
             # For ordered audio processing
             current_seq = 0
             playback_started = False
             last_update_time = time.time()
-            
+
             # Reset sequence counter for new response
             self.tts_sequence_number = 0
-            
+
             # Create a unique response ID for this response session
             self.current_response_id = f"response_{time.time()}"
-            
+
             # Add initial placeholder for streaming response - use main thread and wait for it
-            self.root.after(0, lambda: self._add_initial_response_placeholder(self.current_response_id))
+            self.root.after(
+                0, lambda: self._add_initial_response_placeholder(self.current_response_id)
+            )
             # Give UI time to update
             time.sleep(0.2)
-            
+
             # Add visible "Generating response..." indicator
             self.set_status("Generating response")
-            
+
             # Clear any pending audio chunks from previous responses
             self.pending_audio_chunks.clear()
-            
+
             # Pattern for sentence boundaries - matches sentence ending punctuation followed by space or end of string
-            sentence_pattern = re.compile(r'([.!?])\s+|([.!?])$')
-            
+            sentence_pattern = re.compile(r"([.!?])\s+|([.!?])$")
+
             # Process response stream
             for chunk in stream:
-                if not hasattr(self, 'root'):
+                if not hasattr(self, "root"):
                     break
-                    
-                text = chunk['message']['content']
-                
+
+                text = chunk["message"]["content"]
+
                 if len(text) == 0:
                     # End of response
                     if complete_response:
-                        self.messages.append({
-                            'role': 'assistant',
-                            'content': complete_response
-                        })
+                        self.messages.append({"role": "assistant", "content": complete_response})
                     break
-                
+
                 # Add to buffers
                 buffer += text
                 complete_response += text
-                
+
                 # Update UI with partial response
                 current_time = time.time()
                 if current_time - last_update_time > 0.1:  # Update at most 10 times per second
-                    self.root.after(0, lambda r=complete_response, id=self.current_response_id: 
-                                self._update_response_text(r, id))
+                    self.root.after(
+                        0,
+                        lambda r=complete_response, id=self.current_response_id: self._update_response_text(
+                            r, id
+                        ),
+                    )
                     last_update_time = current_time
                     # Small sleep to give UI time to update
                     time.sleep(0.01)
-                
+
                 # Check for complete sentences in the buffer
                 sentences = []
                 last_end = 0
-                
+
                 # Find all sentence boundaries in the current buffer
                 for match in sentence_pattern.finditer(buffer):
                     end_pos = match.end()
@@ -998,22 +1007,24 @@ class JarvisUI:
                     if sentence:  # Only add non-empty sentences
                         sentences.append(sentence)
                     last_end = end_pos
-                
+
                 # Process complete sentences for TTS
                 if sentences:
                     # Get remaining text after last sentence
                     remaining = buffer[last_end:].strip()
-                    
+
                     # Process each complete sentence as a TTS chunk
                     for sentence in sentences:
                         # Get sequence number for this chunk
                         seq_num = self.tts_sequence_number
                         self.tts_sequence_number += 1
-                        
+
                         # First sentence - process immediately for fast response
                         if not playback_started and current_seq == 0:
                             try:
-                                audio_data = self.tts.generate_audio(sentence, self.voice, self.speed)
+                                audio_data = self.tts.generate_audio(
+                                    sentence, self.voice, self.speed
+                                )
                                 if len(audio_data) > 0:
                                     self.pending_audio_chunks[seq_num] = audio_data
                                     playback_started = True
@@ -1023,51 +1034,51 @@ class JarvisUI:
                             # Submit remaining sentences for background processing
                             tts_futures.append(
                                 self.executor.submit(
-                                    self._process_tts_chunk, 
-                                    sentence, 
-                                    self.voice, 
+                                    self._process_tts_chunk,
+                                    sentence,
+                                    self.voice,
                                     self.speed,
-                                    seq_num
+                                    seq_num,
                                 )
                             )
-                        
+
                         current_seq += 1
-                    
+
                     # Update buffer to only contain the remaining text
                     buffer = remaining
-                
+
                 # Check if buffer is getting too large without sentence boundaries
                 # This prevents growing the buffer indefinitely if no sentence endings are found
                 if len(buffer) > self.tts_chunk_size * 2:
                     # Look for any reasonable break point (comma, semicolon, etc.)
-                    break_pattern = re.compile(r'([,;:])\s+|(\s+and\s+|\s+or\s+|\s+but\s+)')
+                    break_pattern = re.compile(r"([,;:])\s+|(\s+and\s+|\s+or\s+|\s+but\s+)")
                     break_match = list(break_pattern.finditer(buffer))
-                    
+
                     if break_match:
                         # Use the last good break point
                         last_break = break_match[-1]
                         break_pos = last_break.end()
-                        
+
                         chunk_text = buffer[:break_pos].strip()
                         buffer = buffer[break_pos:].strip()
-                        
+
                         # Only process if we have meaningful text
                         if chunk_text:
                             seq_num = self.tts_sequence_number
                             self.tts_sequence_number += 1
-                            
+
                             tts_futures.append(
                                 self.executor.submit(
-                                    self._process_tts_chunk, 
-                                    chunk_text, 
-                                    self.voice, 
+                                    self._process_tts_chunk,
+                                    chunk_text,
+                                    self.voice,
                                     self.speed,
-                                    seq_num
+                                    seq_num,
                                 )
                             )
                             current_seq += 1
                     elif len(buffer) > self.tts_chunk_size * 3:
-                        # If no break points found and buffer is very large, 
+                        # If no break points found and buffer is very large,
                         # force a break at a word boundary as last resort
                         words = buffer.split()
                         if len(words) > 10:  # Ensure we have enough words
@@ -1075,149 +1086,165 @@ class JarvisUI:
                             word_break = int(len(words) * 0.6)
                             chunk_text = " ".join(words[:word_break])
                             buffer = " ".join(words[word_break:])
-                            
+
                             seq_num = self.tts_sequence_number
                             self.tts_sequence_number += 1
-                            
+
                             tts_futures.append(
                                 self.executor.submit(
-                                    self._process_tts_chunk, 
-                                    chunk_text, 
-                                    self.voice, 
+                                    self._process_tts_chunk,
+                                    chunk_text,
+                                    self.voice,
                                     self.speed,
-                                    seq_num
+                                    seq_num,
                                 )
                             )
                             current_seq += 1
-                
+
                 # Wait for some futures to complete if we have too many to avoid memory issues
                 if len(tts_futures) > self.max_queued_chunks * 2:
                     done_futures = []
                     for i, future in enumerate(tts_futures):
                         if future.done():
                             done_futures.append(i)
-                    
+
                     # Remove completed futures (in reverse to avoid index issues)
                     for i in sorted(done_futures, reverse=True):
                         tts_futures.pop(i)
-            
+
             # Final update for any remaining text
             if time.time() - last_update_time > 0.05:
-                self.root.after(0, lambda r=complete_response, id=self.current_response_id: 
-                            self._update_response_text(r, id))
+                self.root.after(
+                    0,
+                    lambda r=complete_response, id=self.current_response_id: self._update_response_text(
+                        r, id
+                    ),
+                )
                 time.sleep(0.05)
-            
+
             # Process final chunk if any remaining text in buffer
             if buffer:
                 seq_num = self.tts_sequence_number
                 self.tts_sequence_number += 1
                 tts_futures.append(
                     self.executor.submit(
-                        self._process_tts_chunk,
-                        buffer,
-                        self.voice,
-                        self.speed,
-                        seq_num
+                        self._process_tts_chunk, buffer, self.voice, self.speed, seq_num
                     )
                 )
-            
+
             # Wait for all futures to complete (not their results)
             for future in tts_futures:
                 try:
                     future.result(timeout=5.0)  # Add timeout to avoid hanging
                 except Exception as e:
                     print(f"Error waiting for TTS future: {e}")
-            
+
             # Make sure we got text, otherwise show an error message
             if not complete_response:
-                self.root.after(0, lambda: self.add_text("I'm sorry, I couldn't generate a response. Please try again.", "error"))
+                self.root.after(
+                    0,
+                    lambda: self.add_text(
+                        "I'm sorry, I couldn't generate a response. Please try again.", "error"
+                    ),
+                )
                 self.root.after(0, lambda: self.set_status("Online"))
                 self.is_processing = False
                 return
-                
+
             # Update UI with complete response - use main thread
-            self.root.after(0, lambda resp=complete_response, rid=self.current_response_id: 
-                           self._finalize_response(resp, rid))
+            self.root.after(
+                0,
+                lambda resp=complete_response, rid=self.current_response_id: self._finalize_response(
+                    resp, rid
+                ),
+            )
             time.sleep(0.1)  # Give UI time to update
-            
+
         except Exception as e:
             print(f"Error in response generation: {e}")
             # Use traceback to get full error details
-            import traceback
             traceback.print_exc()
-            self.root.after(0, lambda: self.add_text(f"Error generating response: {str(e)}", "error"))
+            self.root.after(
+                0, lambda: self.add_text(f"Error generating response: {str(e)}", "error")
+            )
             self.root.after(0, lambda: self.set_status("Online"))
         finally:
             # Reset processing flag after response generation completes
             self.is_processing = False
 
-    def _add_initial_response_placeholder(self, response_id):
+    def _add_initial_response_placeholder(self, response_id: Any) -> None:
         """Add initial placeholder for the streaming response"""
         try:
             # Direct approach to add text - simpler and more reliable
             # Create a new entry in the text display
             self.text_display.config(state=tk.NORMAL)
-            
+
             # Clear any existing placeholder (rare race condition)
-            if hasattr(self, 'current_response_line'):
+            if hasattr(self, "current_response_line"):
                 try:
                     line_start = self.current_response_line
                     line_end = f"{line_start} lineend+1c"  # Include newline
                     self.text_display.delete(line_start, line_end)
-                except:
+                except Exception:  # Replace bare except
                     pass  # Ignore if the deletion fails
-            
+
             # Add the JARVIS prefix with system tag
             jarvis_prefix = "JARVIS: "
             self.text_display.insert(tk.END, jarvis_prefix, "system")
-            
+
             # Store the last line position for updating
-            self.current_response_line = self.text_display.index(tk.END + "-1c linestart")
-            self.current_response_prefix_length = len(jarvis_prefix)
-            
+            self.current_response_line: str = self.text_display.index(tk.END + "-1c linestart")
+            self.current_response_prefix_length: int = len(jarvis_prefix)
+
             # Create a unique tag for this response for tracking
             tag_name = f"response_{response_id}"
-            self.text_display.tag_add(tag_name, f"{self.current_response_line} linestart", f"{self.current_response_line} lineend")
-            
+            self.text_display.tag_add(
+                tag_name,
+                f"{self.current_response_line} linestart",
+                f"{self.current_response_line} lineend",
+            )
+
             # Make sure we can see the insertion point
             self.text_display.see(tk.END)
             self.text_display.config(state=tk.DISABLED)
-            
+
             # Force update to ensure UI refreshes
             self.root.update_idletasks()
-            
-        except Exception as e:
-            print(f"Error creating response placeholder: {e}")
+
+        except Exception as error:
+            print(f"Error creating response placeholder: {error}")
             # Fallback direct text display
-            self.add_text(f"JARVIS is thinking...", "system")
-    
-    def _update_response_text(self, partial_response, response_id):
+            self.add_text("JARVIS is thinking...", "system")
+
+    def _update_response_text(self, partial_response: str, response_id: Any) -> None:
         """Update the UI with a partial response"""
         try:
             # Simple direct approach to replace text
-            if hasattr(self, 'current_response_line'):
+            if hasattr(self, "current_response_line"):
                 # Calculate position after JARVIS: prefix
-                prefix_length = getattr(self, 'current_response_prefix_length', 8)  # Default to 8 if not set
+                prefix_length = getattr(
+                    self, "current_response_prefix_length", 8
+                )  # Default to 8 if not set
                 prefix_pos = f"{self.current_response_line} + {prefix_length}c"  # chars for prefix
-                
+
                 # Open text for editing
                 self.text_display.config(state=tk.NORMAL)
-                
+
                 # Check if we need to delete existing content
                 if self.text_display.get(prefix_pos, f"{self.current_response_line} lineend") != "":
                     # Clear from after prefix to end of line
                     line_end = f"{self.current_response_line} lineend"
                     self.text_display.delete(prefix_pos, line_end)
-                
+
                 # Insert updated text
                 self.text_display.insert(prefix_pos, partial_response)
-                
+
                 # Make sure we can see it
                 self.text_display.see(tk.END)
-                
+
                 # Protect text again
                 self.text_display.config(state=tk.DISABLED)
-                
+
                 # Force immediate visual update
                 self.root.update_idletasks()
             else:
@@ -1229,73 +1256,77 @@ class JarvisUI:
                 last_line = self.text_display.get("end-2l", "end-1c")
                 if last_line.startswith("JARVIS: "):
                     self.text_display.delete("end-2l", "end-1c")
-                
+
                 self.text_display.insert(tk.END, f"JARVIS: {partial_response}\n", "system")
                 self.text_display.see(tk.END)
                 self.text_display.config(state=tk.DISABLED)
                 self.root.update_idletasks()
-            
-        except Exception as e:
-            print(f"Error updating response text: {e}")
+
+        except Exception as error:
+            print(f"Error updating response text: {error}")
             # Last resort - completely direct method
             try:
                 self.add_text(f"JARVIS: {partial_response}", "system")
-            except:
+            except Exception:  # Replace bare except
                 print("Failed all text display methods")
-    
-    def _finalize_response(self, response, response_id):
+
+    def _finalize_response(self, response: str, response_id: Any) -> None:
         """Finalize the response display"""
         try:
-            if hasattr(self, 'current_response_line'):
+            if hasattr(self, "current_response_line"):
                 # Calculate position after JARVIS: prefix
-                prefix_length = getattr(self, 'current_response_prefix_length', 8)  # Default to 8 if not set
+                prefix_length = getattr(
+                    self, "current_response_prefix_length", 8
+                )  # Default to 8 if not set
                 prefix_pos = f"{self.current_response_line} + {prefix_length}c"  # chars for prefix
-                
+
                 # Open text for editing
                 self.text_display.config(state=tk.NORMAL)
-                
+
                 # Clear from after prefix to end of line
                 line_end = f"{self.current_response_line} lineend"
                 self.text_display.delete(prefix_pos, line_end)
-                
+
                 # Insert updated text and add newlines to prepare for next message
                 self.text_display.insert(prefix_pos, f"{response}\n\n")
-                
+
                 # Make sure we can see it
                 self.text_display.see(tk.END)
-                
+
                 # Protect text again
                 self.text_display.config(state=tk.DISABLED)
-                
+
                 # Clear the current line reference
-                delattr(self, 'current_response_line')
-                if hasattr(self, 'current_response_prefix_length'):
-                    delattr(self, 'current_response_prefix_length')
-                
+                delattr(self, "current_response_line")
+                if hasattr(self, "current_response_prefix_length"):
+                    delattr(self, "current_response_prefix_length")
+
                 # Force immediate visual update
                 self.root.update_idletasks()
             else:
                 # Fallback - display without position info
-                print("Warning: No position information for finalizing response, using direct method")
+                print(
+                    "Warning: No position information for finalizing response, using direct method"
+                )
                 # Simple method to add complete text
                 self.add_jarvis_text(f"{response}")
                 self.root.update_idletasks()
-            
-        except Exception as e:
-            print(f"Error finalizing response: {e}")
+
+        except Exception as exc:
+            print(f"Error finalizing response: {exc}")
             # Last resort if all else fails
             try:
                 self.add_jarvis_text(response)
-            except:
+            except Exception:
                 print("Failed all text display methods")
-        
+
         # Reset status if we're still listening
         if self.is_listening and not self.tts_playing:
             self.set_status("Listening")
         elif not self.is_listening:
             self.set_status("Online")
 
-    def show_welcome_message(self):
+    def show_welcome_message(self) -> None:
         """Show welcome message with delayed display"""
         greeting = "Good " + (
             "morning"
@@ -1319,7 +1350,7 @@ class JarvisUI:
         # Schedule the next message
         self.root.after(2000, self.show_second_message)
 
-    def show_second_message(self):
+    def show_second_message(self) -> None:
         """Show the second welcome message"""
         if self.dangerous:
             self.set_warning("COMBAT PROTOCOLS ACTIVE")
@@ -1338,7 +1369,7 @@ class JarvisUI:
 
             self.root.after(1500, self.show_help_message)
 
-    def show_help_message(self):
+    def show_help_message(self) -> None:
         """Show the help message"""
         help_msg = "How may I assist you today?"
         self.add_jarvis_text(help_msg)
@@ -1353,10 +1384,10 @@ class JarvisUI:
                     time_msg + " " + help_msg, self.voice, self.speed
                 )
                 sd.play(audio_data, self.sample_rate)
-            except Exception as e:
-                print(f"Error playing welcome audio: {e}")
+            except Exception as err:
+                print(f"Error playing welcome audio: {err}")
 
-    def on_closing(self):
+    def on_closing(self) -> None:
         """Handle window closing"""
         # Stop any active listening
         self.stop_listening()
@@ -1364,7 +1395,7 @@ class JarvisUI:
         # Stop TTS thread
         if hasattr(self, "tts_thread_active"):
             self.tts_thread_active = False
-            
+
         # Clear pending audio
         if hasattr(self, "pending_audio_chunks"):
             self.pending_audio_chunks.clear()
@@ -1376,7 +1407,7 @@ class JarvisUI:
         # Close the window
         self.root.destroy()
 
-    def toggle_listening(self):
+    def toggle_listening(self) -> None:
         """Toggle voice listening on/off"""
         if not hasattr(self, "voice_available") or not self.voice_available:
             self.add_text("Voice system is not available.", "error")
@@ -1387,7 +1418,7 @@ class JarvisUI:
         else:
             self.start_listening()
 
-    def stop_listening(self):
+    def stop_listening(self) -> None:
         """Stop listening for voice input"""
         self.is_listening = False
 
@@ -1402,16 +1433,20 @@ class JarvisUI:
         self.set_status("Online")
 
 
-def run_jarvis_ui(fullscreen=True, dangerous=DEFAULT_DANGEROUS):
+def run_jarvis_ui(fullscreen: bool = True, dangerous: bool = DEFAULT_DANGEROUS) -> int:
     """Run the JARVIS UI
 
     Args:
         fullscreen: Whether to run in fullscreen mode
         dangerous: Whether to use the dangerous/combat theme
+
+    Returns:
+        int: Exit code
     """
     # Create the Tkinter root window on the main thread
     root = tk.Tk()
-    app = JarvisUI(root, fullscreen=fullscreen, dangerous=dangerous)
+    # Create the JarvisUI application
+    JarvisUI(root, fullscreen=fullscreen, dangerous=dangerous)
 
     # Set dark theme for ttk widgets
     style = ttk.Style()
@@ -1431,10 +1466,10 @@ def run_jarvis_ui(fullscreen=True, dangerous=DEFAULT_DANGEROUS):
     try:
         # Use different approach based on platform
         root.attributes("-alpha", 0.97)
-    except:
+    except Exception as e:
         # If transparency is not supported, just continue without it
-        print("Window transparency not supported on this platform")
-        pass  # Not supported on this platform
+        print(f"Window transparency not supported on this platform: {e}")
+        # Not supported on this platform
 
     # Start the main loop on the main thread
     try:

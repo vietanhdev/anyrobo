@@ -3,6 +3,7 @@
 import time
 import tkinter as tk
 from tkinter import ttk
+from typing import Any, Callable, Optional, Union
 
 from anyrobo.ui.themes import UITheme, get_theme
 
@@ -30,8 +31,15 @@ class FuturisticButton:
     """
 
     def __init__(
-        self, parent, text="Button", command=None, theme=None, width=120, height=40, font=None
-    ):
+        self,
+        parent: tk.Widget,
+        text: str = "Button",
+        command: Optional[Callable[[], None]] = None,
+        theme: Optional[Union[UITheme, str]] = None,
+        width: int = 120,
+        height: int = 40,
+        font: Optional[Any] = None,
+    ) -> None:
         self.parent = parent
         self.text = text
         self.command = command
@@ -67,7 +75,7 @@ class FuturisticButton:
         self.canvas.bind("<Leave>", self.on_leave)
         self.canvas.bind("<Button-1>", self.on_click)
 
-    def create_button(self):
+    def create_button(self) -> None:
         """Create the button elements"""
         # Main button rectangle
         self.button = self.canvas.create_rectangle(
@@ -89,38 +97,30 @@ class FuturisticButton:
         accent_size = 6
         # Top-left
         self.corner_tl = self.canvas.create_line(
-            0, accent_size, 0, 0, accent_size, 0, fill=self.bg_color, width=2
+            [0, accent_size, 0, 0, accent_size, 0], fill=self.bg_color, width=2
         )
         # Top-right
         self.corner_tr = self.canvas.create_line(
-            self.width - accent_size,
-            0,
-            self.width,
-            0,
-            self.width,
-            accent_size,
+            [self.width - accent_size, 0, self.width, 0, self.width, accent_size],
             fill=self.bg_color,
             width=2,
         )
         # Bottom-left
         self.corner_bl = self.canvas.create_line(
-            0,
-            self.height - accent_size,
-            0,
-            self.height,
-            accent_size,
-            self.height,
+            [0, self.height - accent_size, 0, self.height, accent_size, self.height],
             fill=self.bg_color,
             width=2,
         )
         # Bottom-right
         self.corner_br = self.canvas.create_line(
-            self.width - accent_size,
-            self.height,
-            self.width,
-            self.height,
-            self.width,
-            self.height - accent_size,
+            [
+                self.width - accent_size,
+                self.height,
+                self.width,
+                self.height,
+                self.width,
+                self.height - accent_size,
+            ],
             fill=self.bg_color,
             width=2,
         )
@@ -128,24 +128,24 @@ class FuturisticButton:
         # Store corner IDs for later access
         self.corner_ids = [self.corner_tl, self.corner_tr, self.corner_bl, self.corner_br]
 
-    def on_enter(self, event):
+    def on_enter(self, event: Any) -> None:
         """Handle mouse enter event"""
         self.canvas.itemconfig(self.button, outline=self.hover_color)
         for item in self.corner_ids:
             self.canvas.itemconfig(item, fill=self.hover_color)
 
-    def on_leave(self, event):
+    def on_leave(self, event: Any) -> None:
         """Handle mouse leave event"""
         self.canvas.itemconfig(self.button, outline=self.bg_color)
         for item in self.corner_ids:
             self.canvas.itemconfig(item, fill=self.bg_color)
 
-    def on_click(self, event):
+    def on_click(self, event: Any) -> None:
         """Handle mouse click event"""
         if self.command is not None:
             self.command()
 
-    def update_theme(self, theme):
+    def update_theme(self, theme: Union[UITheme, str]) -> None:
         """Update the button's theme
 
         Args:
@@ -169,15 +169,15 @@ class FuturisticButton:
         for item in self.corner_ids:
             self.canvas.itemconfig(item, fill=self.bg_color)
 
-    def pack(self, **kwargs):
+    def pack(self, **kwargs: Any) -> None:
         """Pack the button canvas"""
         self.canvas.pack(**kwargs)
 
-    def grid(self, **kwargs):
+    def grid(self, **kwargs: Any) -> None:
         """Grid the button canvas"""
         self.canvas.grid(**kwargs)
 
-    def place(self, **kwargs):
+    def place(self, **kwargs: Any) -> None:
         """Place the button canvas"""
         self.canvas.place(**kwargs)
 
@@ -194,7 +194,13 @@ class StatusBar:
         font: Status bar font
     """
 
-    def __init__(self, parent, theme=None, height=30, font=None):
+    def __init__(
+        self,
+        parent: tk.Widget,
+        theme: Optional[Union[UITheme, str]] = None,
+        height: int = 30,
+        font: Optional[Any] = None,
+    ) -> None:
         self.parent = parent
 
         # Get theme
@@ -222,7 +228,7 @@ class StatusBar:
         # Start clock
         self.update_clock()
 
-    def create_status_elements(self):
+    def create_status_elements(self) -> None:
         """Create the status bar elements"""
         # Left status indicator
         self.status_left = tk.Label(
@@ -246,7 +252,7 @@ class StatusBar:
         )
         self.status_right.pack(side=tk.RIGHT)
 
-    def update_theme(self, theme):
+    def update_theme(self, theme: Union[UITheme, str]) -> None:
         """Update the status bar's theme
 
         Args:
@@ -268,7 +274,7 @@ class StatusBar:
         self.status_center.config(fg=self.warning_color, bg=self.bg_color)
         self.status_right.config(fg=self.theme.secondary_text_color, bg=self.bg_color)
 
-    def update_clock(self):
+    def update_clock(self) -> None:
         """Update the clock in the status bar"""
         current_time = time.strftime("%H:%M:%S")
         self.status_right.config(text=f"System Time: {current_time}")
@@ -276,40 +282,46 @@ class StatusBar:
         # Schedule next update
         self.parent.after(1000, self.update_clock)
 
-    def set_status(self, text):
+    def set_status(self, text: str) -> None:
         """Update the status text"""
         self.status_left.config(text=f"Status: {text}")
 
-    def set_warning(self, text):
+    def set_warning(self, text: str) -> None:
         """Set warning text in status bar"""
         self.status_center.config(text=text)
 
-    def pack(self, **kwargs):
+    def pack(self, **kwargs: Any) -> None:
         """Pack the status bar frame"""
         self.frame.pack(**kwargs)
 
-    def grid(self, **kwargs):
+    def grid(self, **kwargs: Any) -> None:
         """Grid the status bar frame"""
         self.frame.grid(**kwargs)
 
-    def place(self, **kwargs):
+    def place(self, **kwargs: Any) -> None:
         """Place the status bar frame"""
         self.frame.place(**kwargs)
 
 
 class TextDisplay:
-    """Text display for UI interfaces.
+    """Text display area for UI interfaces.
 
-    This creates a styled text display area with scrollbar and tag support.
+    This creates a text display area with scrollbar and tag-based formatting.
 
     Args:
         parent: Parent tkinter widget
         theme: UITheme instance or theme name
         font: Text font
-        height: Display height
+        height: Height of the text area in lines
     """
 
-    def __init__(self, parent, theme=None, font=None, height=10):
+    def __init__(
+        self,
+        parent: tk.Widget,
+        theme: Optional[Union[UITheme, str]] = None,
+        font: Optional[Any] = None,
+        height: int = 10,
+    ) -> None:
         self.parent = parent
 
         # Get theme
@@ -337,7 +349,7 @@ class TextDisplay:
         # Create elements
         self.create_text_display()
 
-    def create_text_display(self):
+    def create_text_display(self) -> None:
         """Create the text display area"""
         self.text = tk.Text(
             self.frame,
@@ -364,7 +376,7 @@ class TextDisplay:
         self.text.tag_configure("warning", foreground=self.theme.warning_color)
         self.text.tag_configure("error", foreground=self.theme.error_color)
 
-    def update_theme(self, theme):
+    def update_theme(self, theme: Union[UITheme, str]) -> None:
         """Update the text display's theme
 
         Args:
@@ -390,7 +402,7 @@ class TextDisplay:
         self.text.tag_configure("warning", foreground=self.theme.warning_color)
         self.text.tag_configure("error", foreground=self.theme.error_color)
 
-    def add_system_text(self, text, system_name="System"):
+    def add_system_text(self, text: str, system_name: str = "System") -> None:
         """Add text from the system to the display"""
         self.text.config(state=tk.NORMAL)
         self.text.insert(tk.END, f"{system_name}: ", "system")
@@ -398,7 +410,7 @@ class TextDisplay:
         self.text.see(tk.END)
         self.text.config(state=tk.DISABLED)
 
-    def add_user_text(self, text):
+    def add_user_text(self, text: str) -> None:
         """Add user text to the display"""
         self.text.config(state=tk.NORMAL)
         self.text.insert(tk.END, "User: ", "user")
@@ -406,7 +418,7 @@ class TextDisplay:
         self.text.see(tk.END)
         self.text.config(state=tk.DISABLED)
 
-    def add_text(self, text, tag=None):
+    def add_text(self, text: str, tag: Optional[str] = None) -> None:
         """Add text with optional formatting"""
         self.text.config(state=tk.NORMAL)
         if tag:
@@ -416,20 +428,20 @@ class TextDisplay:
         self.text.see(tk.END)
         self.text.config(state=tk.DISABLED)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all text"""
         self.text.config(state=tk.NORMAL)
         self.text.delete(1.0, tk.END)
         self.text.config(state=tk.DISABLED)
 
-    def pack(self, **kwargs):
+    def pack(self, **kwargs: Any) -> None:
         """Pack the text display frame"""
         self.frame.pack(**kwargs)
 
-    def grid(self, **kwargs):
+    def grid(self, **kwargs: Any) -> None:
         """Grid the text display frame"""
         self.frame.grid(**kwargs)
 
-    def place(self, **kwargs):
+    def place(self, **kwargs: Any) -> None:
         """Place the text display frame"""
         self.frame.place(**kwargs)

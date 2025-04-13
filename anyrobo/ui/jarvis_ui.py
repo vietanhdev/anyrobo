@@ -5,6 +5,7 @@ import threading
 import time
 import tkinter as tk
 from tkinter import font, ttk
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import sounddevice as sd
@@ -28,7 +29,16 @@ BG_COLOR = "#000A14"
 class CircularProgressAnimation:
     """Animated circular progress indicator for JARVIS UI"""
 
-    def __init__(self, canvas, x, y, size=100, color="#5CE1E6", bg_color="#002137", width=8):
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        x: int,
+        y: int,
+        size: int = 100,
+        color: str = "#5CE1E6",
+        bg_color: str = "#002137",
+        width: int = 8,
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -40,8 +50,8 @@ class CircularProgressAnimation:
         self.arc_length = 120  # Degrees
         self.speed = 3
         self.running = False
-        self.arc_id = None
-        self.bg_id = None
+        self.arc_id: Optional[int] = None
+        self.bg_id: Optional[int] = None
 
         # Create background circle
         self.bg_id = self.canvas.create_oval(
@@ -54,12 +64,12 @@ class CircularProgressAnimation:
             fill="",
         )
 
-    def start(self):
+    def start(self) -> None:
         """Start the animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the progress indicator"""
         if not self.running:
             return
@@ -68,11 +78,7 @@ class CircularProgressAnimation:
             self.canvas.delete(self.arc_id)
 
         start_angle = self.angle
-        end_angle = (self.angle + self.arc_length) % 360
-
-        # Convert to radians for calculation
-        start_rad = math.radians(start_angle)
-        end_rad = math.radians(end_angle)
+        # We don't need to calculate end_angle as we use arc_length directly in create_arc
 
         # Calculate arc coordinates
         x1 = self.x - self.size / 2
@@ -95,7 +101,7 @@ class CircularProgressAnimation:
         self.angle = (self.angle + self.speed) % 360
         self.canvas.after(20, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         if self.arc_id:
@@ -106,7 +112,16 @@ class CircularProgressAnimation:
 class AudioVisualizer:
     """Audio visualizer for JARVIS UI"""
 
-    def __init__(self, canvas, x, y, width=200, height=60, bars=20, color="#5CE1E6"):
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        x: int,
+        y: int,
+        width: int = 200,
+        height: int = 60,
+        bars: int = 20,
+        color: str = "#5CE1E6",
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -115,7 +130,7 @@ class AudioVisualizer:
         self.bars = bars
         self.color = color
         self.bar_width = width / bars
-        self.bar_ids = []
+        self.bar_ids: List[int] = []
         self.running = False
 
         # Create initial bars (all at minimum height)
@@ -132,12 +147,12 @@ class AudioVisualizer:
             )
             self.bar_ids.append(bar_id)
 
-    def start(self):
+    def start(self) -> None:
         """Start the visualizer animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the audio visualizer"""
         if not self.running:
             return
@@ -159,7 +174,7 @@ class AudioVisualizer:
 
         self.canvas.after(100, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         # Reset to minimum height
@@ -179,8 +194,15 @@ class PulsatingCircle:
     """Pulsating circle animation for JARVIS UI"""
 
     def __init__(
-        self, canvas, x, y, min_radius=20, max_radius=30, color="#5CE1E6", pulse_speed=0.05
-    ):
+        self,
+        canvas: tk.Canvas,
+        x: int,
+        y: int,
+        min_radius: float = 20,
+        max_radius: float = 30,
+        color: str = "#5CE1E6",
+        pulse_speed: float = 0.05,
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -190,7 +212,7 @@ class PulsatingCircle:
         self.color = color
         self.pulse_speed = pulse_speed
         self.growing = True
-        self.circle_id = None
+        self.circle_id: Optional[int] = None
         self.running = False
 
         # Create initial circle
@@ -198,12 +220,12 @@ class PulsatingCircle:
             x - min_radius, y - min_radius, x + min_radius, y + min_radius, fill=color, outline=""
         )
 
-    def start(self):
+    def start(self) -> None:
         """Start the pulsating animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the pulsating circle"""
         if not self.running:
             return
@@ -217,49 +239,63 @@ class PulsatingCircle:
             if self.current_radius <= self.min_radius:
                 self.growing = True
 
-        self.canvas.coords(
-            self.circle_id,
-            self.x - self.current_radius,
-            self.y - self.current_radius,
-            self.x + self.current_radius,
-            self.y + self.current_radius,
-        )
-
-        # Update alpha (opacity) based on radius
-        alpha = int(
-            255 * (self.max_radius - self.current_radius) / (self.max_radius - self.min_radius)
-        )
-        color_with_alpha = f"{self.color}{alpha:02x}"
+        if self.circle_id is not None:
+            self.canvas.coords(
+                self.circle_id,
+                int(self.x - self.current_radius),
+                int(self.y - self.current_radius),
+                int(self.x + self.current_radius),
+                int(self.y + self.current_radius),
+            )
 
         self.canvas.after(20, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         # Reset to minimum radius
-        self.canvas.coords(
-            self.circle_id,
-            self.x - self.min_radius,
-            self.y - self.min_radius,
-            self.x + self.min_radius,
-            self.y + self.min_radius,
-        )
+        if self.circle_id is not None:
+            self.canvas.coords(
+                self.circle_id,
+                int(self.x - self.min_radius),
+                int(self.y - self.min_radius),
+                int(self.x + self.min_radius),
+                int(self.y + self.min_radius),
+            )
 
 
 class HexagonGrid:
-    """Animated hexagonal grid for JARVIS UI background"""
+    """Animated hexagonal grid for UI backgrounds.
 
-    def __init__(self, canvas, size=40, gap=10, color=UI_BLUE, alpha=0.2):
+    This component creates a grid of hexagons that can pulse or change visibility
+    for a futuristic background effect.
+
+    Args:
+        canvas: The tkinter canvas to draw on
+        size: Size of each hexagon
+        gap: Gap between hexagons
+        color: Color of the hexagons
+        alpha: Transparency of the hexagons (not fully supported in Tkinter)
+    """
+
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        size: int = 40,
+        gap: int = 10,
+        color: str = UI_BLUE,
+        alpha: float = 0.2,
+    ) -> None:
         self.canvas = canvas
         self.size = size
         self.gap = gap
         self.color = color
         self.alpha = alpha
-        self.hexagons = []
+        self.hexagons: List[Dict[str, Any]] = []
         self.running = False
         self.create_grid()
 
-    def create_grid(self):
+    def create_grid(self) -> None:
         """Create hexagonal grid to cover the canvas"""
         width = self.canvas.winfo_width() or 800
         height = self.canvas.winfo_height() or 600
@@ -307,12 +343,12 @@ class HexagonGrid:
                     }
                 )
 
-    def start(self):
+    def start(self) -> None:
         """Start the animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the hexagonal grid"""
         if not self.running:
             return
@@ -321,16 +357,15 @@ class HexagonGrid:
             # Update pulse value
             hex_data["pulse"] = (hex_data["pulse"] + hex_data["pulse_speed"]) % 1.0
 
-            # Calculate alpha based on pulse
-            alpha = 0.1 + 0.3 * math.sin(hex_data["pulse"] * math.pi * 2)
-            hex_color = self.color + f"{int(alpha * 255):02x}"
-
-            # Update hexagon color
-            self.canvas.itemconfig(hex_data["id"], outline=hex_color)
+            # Toggle visibility occasionally
+            if random.random() < 0.05:  # 5% chance to toggle visibility
+                current_state = self.canvas.itemcget(hex_data["id"], "state")
+                new_state = "hidden" if current_state == "normal" else "normal"
+                self.canvas.itemconfig(hex_data["id"], state=new_state)
 
         self.canvas.after(50, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
 
@@ -338,21 +373,23 @@ class HexagonGrid:
 class ScanLine:
     """Animated scan line effect for JARVIS UI"""
 
-    def __init__(self, canvas, color=UI_BLUE, speed=2, thickness=3):
+    def __init__(
+        self, canvas: tk.Canvas, color: str = UI_BLUE, speed: int = 2, thickness: int = 3
+    ) -> None:
         self.canvas = canvas
         self.color = color
         self.speed = speed
         self.thickness = thickness
         self.position = 0
-        self.scan_id = None
+        self.scan_id: Optional[int] = None
         self.running = False
 
-    def start(self):
+    def start(self) -> None:
         """Start the scan line animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the scan line"""
         if not self.running:
             return
@@ -380,7 +417,7 @@ class ScanLine:
 
         self.canvas.after(20, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         if self.scan_id:
@@ -391,17 +428,19 @@ class ScanLine:
 class TargetLock:
     """Animated target lock/crosshair effect"""
 
-    def __init__(self, canvas, x, y, size=50, color=DANGER_RED):
+    def __init__(
+        self, canvas: tk.Canvas, x: int, y: int, size: int = 50, color: str = DANGER_RED
+    ) -> None:
         self.canvas = canvas
         self.x = x
         self.y = y
         self.size = size
         self.color = color
-        self.shapes = []
+        self.shapes: List[int] = []
         self.rotation = 0
         self.running = False
 
-    def _create_shapes(self):
+    def _create_shapes(self) -> None:
         """Create target lock shapes"""
         # Delete previous shapes
         for shape_id in self.shapes:
@@ -455,12 +494,12 @@ class TargetLock:
         id4 = self.canvas.create_line(x1, y1, x2, y2, fill=self.color, width=1)
         self.shapes.append(id4)
 
-    def start(self):
+    def start(self) -> None:
         """Start the target lock animation"""
         self.running = True
         self._animate()
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the target lock"""
         if not self.running:
             return
@@ -473,7 +512,7 @@ class TargetLock:
 
         self.canvas.after(30, self._animate)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the animation"""
         self.running = False
         # Delete shapes
@@ -481,7 +520,7 @@ class TargetLock:
             self.canvas.delete(shape_id)
         self.shapes = []
 
-    def set_position(self, x, y):
+    def set_position(self, x: int, y: int) -> None:
         """Update the position of the target lock"""
         self.x = x
         self.y = y
@@ -490,17 +529,26 @@ class TargetLock:
 class LiveAudioVisualizer(AudioVisualizer):
     """Enhanced audio visualizer that can use real audio data"""
 
-    def __init__(self, canvas, x, y, width=200, height=60, bars=20, color=UI_BLUE):
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        x: int,
+        y: int,
+        width: int = 200,
+        height: int = 60,
+        bars: int = 20,
+        color: str = UI_BLUE,
+    ) -> None:
         super().__init__(canvas, x, y, width, height, bars, color)
-        self.audio_data = None
+        self.audio_data: Optional[np.ndarray] = None
         self.is_live = False
 
-    def set_audio_data(self, audio_data):
+    def set_audio_data(self, audio_data: np.ndarray) -> None:
         """Set audio data for visualization"""
         self.audio_data = audio_data
         self.is_live = True
 
-    def _animate(self):
+    def _animate(self) -> None:
         """Animate the audio visualizer"""
         if not self.running:
             return
@@ -564,7 +612,7 @@ class LiveAudioVisualizer(AudioVisualizer):
 class JarvisUI:
     """JARVIS-inspired UI with animations, text display, and voice status"""
 
-    def __init__(self, root, fullscreen=True, dangerous=True):
+    def __init__(self, root: tk.Tk, fullscreen: bool = True, dangerous: bool = True) -> None:
         self.root = root
         self.root.title("J.A.R.V.I.S - ADVANCED COMBAT INTERFACE")
         self.root.configure(bg=BG_COLOR)
@@ -617,18 +665,22 @@ class JarvisUI:
         self.root.bind("<Configure>", self.on_resize)
 
         # Audio processing
-        self.audio_queue = queue.Queue()
+        self.audio_queue: queue.Queue[np.ndarray] = queue.Queue()
         self.recording = False
         self.is_listening = False
 
-    def setup_fonts(self):
+        # Initialize TTS and STT as Optional
+        self.tts: Optional[TextToSpeech] = None
+        self.stt: Optional[SpeechRecognizer] = None
+
+    def setup_fonts(self) -> None:
         """Setup custom fonts for the UI"""
         self.title_font = font.Font(family="Helvetica", size=28, weight="bold")
         self.text_font = font.Font(family="Courier", size=14)
         self.status_font = font.Font(family="Helvetica", size=11)
         self.button_font = font.Font(family="Helvetica", size=12, weight="bold")
 
-    def setup_speech(self):
+    def setup_speech(self) -> None:
         """Setup speech recognition and synthesis"""
         try:
             self.tts = TextToSpeech()
@@ -642,13 +694,13 @@ class JarvisUI:
             self.tts = None
             self.stt = None
 
-    def toggle_fullscreen(self, event=None):
+    def toggle_fullscreen(self, event: Optional[tk.Event] = None) -> str:
         """Toggle fullscreen mode"""
         self.fullscreen = not self.fullscreen
         self.root.attributes("-fullscreen", self.fullscreen)
         return "break"
 
-    def create_header(self):
+    def create_header(self) -> None:
         """Create the header section with title"""
         header_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
         header_frame.pack(fill=tk.X, pady=(0, 20))
@@ -689,7 +741,7 @@ class JarvisUI:
         )
         subtitle_label.pack(side=tk.LEFT, padx=(10, 0), pady=(8, 0))
 
-    def blink_classified(self):
+    def blink_classified(self) -> None:
         """Blink the classified indicator"""
         if not hasattr(self, "classified_label"):
             return
@@ -699,7 +751,7 @@ class JarvisUI:
         self.classified_label.config(background=new_bg)
         self.root.after(500, self.blink_classified)
 
-    def create_animation_canvas(self):
+    def create_animation_canvas(self) -> None:
         """Create canvas for animations"""
         canvas_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
         canvas_frame.pack(fill=tk.BOTH, expand=True)
@@ -710,7 +762,7 @@ class JarvisUI:
         # Create animations
         self.setup_animations()
 
-    def setup_animations(self):
+    def setup_animations(self) -> None:
         """Setup all animations on the canvas"""
         canvas_width = self.canvas.winfo_width() or 1024
         canvas_height = self.canvas.winfo_height() or 500
@@ -724,8 +776,8 @@ class JarvisUI:
         # Circular progress animation (top-left)
         self.circle_progress = CircularProgressAnimation(
             self.canvas,
-            canvas_width * 0.15,
-            canvas_height * 0.25,
+            int(canvas_width * 0.15),
+            int(canvas_height * 0.25),
             size=80,
             color=self.primary_color,
             bg_color=BG_COLOR,
@@ -734,9 +786,9 @@ class JarvisUI:
         # Audio visualizer (bottom)
         self.audio_vis = LiveAudioVisualizer(
             self.canvas,
-            canvas_width * 0.5,
-            canvas_height * 0.85,
-            width=canvas_width * 0.7,
+            int(canvas_width * 0.5),
+            int(canvas_height * 0.85),
+            width=int(canvas_width * 0.7),
             height=50,
             bars=40,
             color=self.primary_color,
@@ -745,8 +797,8 @@ class JarvisUI:
         # Pulsating circle (top-right)
         self.pulse_circle = PulsatingCircle(
             self.canvas,
-            canvas_width * 0.85,
-            canvas_height * 0.25,
+            int(canvas_width * 0.85),
+            int(canvas_height * 0.25),
             min_radius=20,
             max_radius=30,
             color=self.primary_color,
@@ -755,7 +807,11 @@ class JarvisUI:
         # Target lock (center)
         if self.dangerous:
             self.target_lock = TargetLock(
-                self.canvas, canvas_width * 0.5, canvas_height * 0.4, size=70, color=DANGER_RED
+                self.canvas,
+                int(canvas_width * 0.5),
+                int(canvas_height * 0.4),
+                size=70,
+                color=DANGER_RED,
             )
 
         # Add text and decorative elements
@@ -779,7 +835,7 @@ class JarvisUI:
             anchor="se",
         )
 
-    def start_animations(self):
+    def start_animations(self) -> None:
         """Start all animations"""
         self.hex_grid.start()
         self.scan_line.start()
@@ -789,7 +845,7 @@ class JarvisUI:
         if self.dangerous and hasattr(self, "target_lock"):
             self.target_lock.start()
 
-    def stop_animations(self):
+    def stop_animations(self) -> None:
         """Stop all animations"""
         self.hex_grid.stop()
         self.scan_line.stop()
@@ -799,7 +855,7 @@ class JarvisUI:
         if self.dangerous and hasattr(self, "target_lock"):
             self.target_lock.stop()
 
-    def create_text_display(self):
+    def create_text_display(self) -> None:
         """Create the text display area"""
         text_frame = tk.Frame(self.main_frame, bg=UI_DARK_BLUE, padx=10, pady=10)
         text_frame.pack(fill=tk.BOTH, expand=True, pady=20)
@@ -837,7 +893,7 @@ class JarvisUI:
         if self.dangerous:
             self.add_text("WARNING: Combat mode activated. Weapon systems online.", "warning")
 
-    def create_voice_controls(self):
+    def create_voice_controls(self) -> None:
         """Create voice control buttons"""
         control_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
         control_frame.pack(fill=tk.X, pady=(0, 10))
@@ -868,14 +924,14 @@ class JarvisUI:
         )
         self.voice_status.pack(side=tk.LEFT, padx=10, pady=8)
 
-    def toggle_voice_recording(self):
+    def toggle_voice_recording(self) -> None:
         """Toggle voice recording on/off"""
         if not self.recording:
             self.start_recording()
         else:
             self.stop_recording()
 
-    def start_recording(self):
+    def start_recording(self) -> None:
         """Start recording audio for voice recognition"""
         if self.recording:
             return
@@ -888,14 +944,14 @@ class JarvisUI:
         # Start recording in a separate thread
         threading.Thread(target=self._record_audio, daemon=True).start()
 
-    def stop_recording(self):
+    def stop_recording(self) -> None:
         """Stop recording audio"""
         self.recording = False
         self.voice_button.config(text="START VOICE COMMAND", bg=self.primary_color)
         self.voice_status.config(text="Voice Recognition: IDLE", fg="#AAAAAA")
         self.set_status("Online")
 
-    def _record_audio(self):
+    def _record_audio(self) -> None:
         """Record audio and process it"""
         try:
             # Sample rate and channels
@@ -906,7 +962,7 @@ class JarvisUI:
             # Start audio stream
             self.audio_data = np.array([], dtype=np.float32)
 
-            def callback(indata, frames, time, status):
+            def callback(indata: np.ndarray, frames: int, time: Any, status: Any) -> None:
                 """Callback for audio stream"""
                 # Append data to the queue
                 self.audio_queue.put(indata.copy())
@@ -971,7 +1027,7 @@ class JarvisUI:
         finally:
             self.stop_recording()
 
-    def process_voice_command(self, text):
+    def process_voice_command(self, text: str) -> None:
         """Process a voice command"""
         text_lower = text.lower()
 
@@ -1007,7 +1063,7 @@ class JarvisUI:
         self.add_jarvis_text(response)
         self.speak(response)
 
-    def speak(self, text):
+    def speak(self, text: str) -> None:
         """Convert text to speech using TTS"""
         if not text or not self.tts:
             return
@@ -1017,7 +1073,7 @@ class JarvisUI:
             audio_data = self.tts.generate_audio(text, self.voice, self.speech_speed)
 
             # Play audio in a separate thread
-            def play_audio():
+            def play_audio() -> None:
                 try:
                     # Play the audio
                     sd.play(audio_data, 24000)
@@ -1030,7 +1086,7 @@ class JarvisUI:
         except Exception as e:
             print(f"Speech synthesis error: {e}")
 
-    def create_status_bar(self):
+    def create_status_bar(self) -> None:
         """Create the status bar at the bottom"""
         status_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
         status_frame.pack(fill=tk.X, pady=(10, 0))
@@ -1060,7 +1116,7 @@ class JarvisUI:
         # Update clock
         self.update_clock()
 
-    def update_clock(self):
+    def update_clock(self) -> None:
         """Update the clock in the status bar"""
         current_time = time.strftime("%H:%M:%S")
         self.status_right.config(text=f"System Time: {current_time}")
@@ -1072,7 +1128,7 @@ class JarvisUI:
 
         self.root.after(1000, self.update_clock)
 
-    def add_jarvis_text(self, text):
+    def add_jarvis_text(self, text: str) -> None:
         """Add text from JARVIS to the display"""
         self.text_display.config(state=tk.NORMAL)
         self.text_display.insert(tk.END, "JARVIS: ", "jarvis")
@@ -1080,7 +1136,7 @@ class JarvisUI:
         self.text_display.see(tk.END)
         self.text_display.config(state=tk.DISABLED)
 
-    def add_user_text(self, text):
+    def add_user_text(self, text: str) -> None:
         """Add user text to the display"""
         self.text_display.config(state=tk.NORMAL)
         self.text_display.insert(tk.END, "User: ", "user")
@@ -1088,7 +1144,7 @@ class JarvisUI:
         self.text_display.see(tk.END)
         self.text_display.config(state=tk.DISABLED)
 
-    def add_text(self, text, tag=None):
+    def add_text(self, text: str, tag: Optional[str] = None) -> None:
         """Add text with optional formatting"""
         self.text_display.config(state=tk.NORMAL)
         if tag:
@@ -1098,22 +1154,22 @@ class JarvisUI:
         self.text_display.see(tk.END)
         self.text_display.config(state=tk.DISABLED)
 
-    def set_status(self, text):
+    def set_status(self, text: str) -> None:
         """Update the status text"""
         self.status_left.config(text=f"Status: {text}")
 
-    def set_warning(self, text):
+    def set_warning(self, text: str) -> None:
         """Set warning text in status bar"""
         self.status_center.config(text=text)
 
-    def on_resize(self, event):
+    def on_resize(self, event: Any) -> None:
         """Handle window resize event"""
         # Only handle if it's the root window resizing
         if event.widget == self.root:
             # Wait a bit to make sure the canvas has been resized
             self.root.after(100, self.reposition_animations)
 
-    def reposition_animations(self):
+    def reposition_animations(self) -> None:
         """Reposition animations after resize"""
         # Stop animations
         self.stop_animations()
@@ -1128,7 +1184,7 @@ class JarvisUI:
         self.start_animations()
 
 
-def run_jarvis_ui(fullscreen=True, dangerous=True):
+def run_jarvis_ui(fullscreen: bool = True, dangerous: bool = True) -> None:
     """Run the JARVIS UI
 
     Args:
@@ -1155,11 +1211,11 @@ def run_jarvis_ui(fullscreen=True, dangerous=True):
     # Make window semi-transparent on supported platforms
     try:
         root.attributes("-alpha", 0.97)
-    except:
+    except Exception:  # Fixed bare except
         pass  # Not supported on this platform
 
     # Example of adding text after a delay
-    def delayed_text():
+    def delayed_text() -> None:
         time.sleep(2)
         app.add_jarvis_text("All systems are functioning at optimal levels.")
 
